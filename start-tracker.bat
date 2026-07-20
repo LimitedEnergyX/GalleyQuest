@@ -1,3 +1,3 @@
 @echo off
-cd /d "C:\Users\arene\Claude\Artifacts\pantry-meal-tracker"
+cd /d "C:\Users\arene\Claude\Artifacts\GalleyQuest"
 node server.js

@@ -1,4 +1,4 @@
-# Pantry & Meal Tracker
+# GalleyQuest
 
 A small self-hosted app for tracking pantry stock, recipes, and a weekly meal
 plan, with a derived grocery list. Static HTML/JS frontend, backed by
