@@ -174,15 +174,15 @@ button.card-face:focus-visible {
 <p class="conn-status" id="conn-status">Connecting…</p>
 
 <div class="tabs">
-  <button class="tab-btn active" data-tab="stock">Stock</button>
-  <button class="tab-btn" data-tab="recipes">Recipes</button>
+  <button class="tab-btn active" data-tab="suggestions">Cook Now</button>
   <button class="tab-btn" data-tab="plan">Meal Plan</button>
+  <button class="tab-btn" data-tab="stock">Stock</button>
   <button class="tab-btn" data-tab="grocery">Grocery List</button>
-  <button class="tab-btn" data-tab="suggestions">Cook Now</button>
+  <button class="tab-btn" data-tab="recipes">Recipes</button>
 </div>
 
 <!-- STOCK PANEL -->
-<div class="panel active" id="panel-stock">
+<div class="panel" id="panel-stock">
   <div class="toolbar">
     <input type="text" id="stock-search" placeholder="Search items…">
     <select id="stock-filter-category"><option value="">All sections</option></select>
@@ -239,7 +239,7 @@ button.card-face:focus-visible {
 </div>
 
 <!-- SUGGESTIONS PANEL -->
-<div class="panel" id="panel-suggestions">
+<div class="panel active" id="panel-suggestions">
   <p class="small">Ranks your recipes by how many of their tracked ingredients are currently marked OK in Stock. Untracked ingredients can't be checked automatically.</p>
   <div class="toolbar">
     <label class="toggle-row"><input type="checkbox" id="sugg-ready-only" style="width:auto"> Only show fully stocked (tracked ingredients)</label>
@@ -1037,6 +1037,7 @@ async function init() {
   await loadStock();
   await loadRecipes();
   await loadPlan();
+  renderSuggestions();
 }
 init();
 </script>
