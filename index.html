@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pantry & Meal Tracker</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #faf9f7; color: #2b2924; font-size: 14px;
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .subtitle { color: #8a8578; font-size: 12.5px; margin: 0 0 16px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid #e5e1d8; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 8px 14px; border: none; background: none; cursor: pointer;
+    font-size: 13.5px; color: #8a8578; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; font-weight: 500;
+  }
+  .tab-btn.active { color: #b5551e; border-bottom-color: #b5551e; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  select, input[type=text], input[type=date], textarea {
+    font-family: inherit; font-size: 13px; padding: 6px 8px;
+    border: 1px solid #ddd8cc; border-radius: 6px; background: #fff; color: #2b2924;
+  }
+  textarea { width: 100%; resize: vertical; }
+  button {
+    font-family: inherit; font-size: 13px; padding: 6px 12px; border-radius: 6px;
+    border: 1px solid #ddd8cc; background: #fff; cursor: pointer; color: #2b2924;
+  }
+  button.primary { background: #b5551e; border-color: #b5551e; color: #fff; }
+  button.primary:hover { background: #9c4718; }
+  button.danger { color: #b3261e; border-color: #f0c9c5; }
+  button.ghost { border-color: transparent; background: none; color: #8a8578; }
+  button:hover { background: #f4f1ea; }
+  button.primary:hover { background: #9c4718; }
+  button.seg { border-radius: 0; }
+  .seg-group { display: inline-flex; border: 1px solid #ddd8cc; border-radius: 6px; overflow: hidden; }
+  .seg-group button { border: none; border-radius: 0; margin: 0; }
+  .seg-group button + button { border-left: 1px solid #ddd8cc; }
+  .seg-group button.active { background: #b5551e; color: #fff; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e5e1d8; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f0ede4; font-size: 13px; vertical-align: top; }
+  th { background: #f4f1ea; font-weight: 600; color: #6b6656; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; }
+  tr:last-child td { border-bottom: none; }
+  tr.section-row td { background: #f4f1ea; font-weight: 700; font-size: 12.5px; color: #6b6656; padding: 7px 10px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-OK { background: #e3f2e1; color: #2e7d32; }
+  .badge-LOW { background: #fff3d6; color: #a86a00; }
+  .badge-OUT { background: #fbe1df; color: #b3261e; }
+  .flag { color: #b5551e; font-size: 13px; }
+  .card { background: #fff; border: 1px solid #e5e1d8; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+  .card h3 { margin: 0 0 4px; font-size: 14.5px; }
+  .theme-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #eee7d8; color: #7a6a3a; font-weight: 600; }
+  .card-meta { color: #8a8578; font-size: 12px; margin: 4px 0 8px; }
+  .ing-list { font-size: 12.5px; margin: 6px 0; padding-left: 0; list-style: none; }
+  .ing-list li { padding: 2px 0; }
+  .card-actions { margin-top: 8px; display: flex; gap: 6px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-grid label { display: block; font-size: 11.5px; color: #6b6656; margin-bottom: 3px; font-weight: 600; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-grid input, .form-grid select, .form-grid textarea { width: 100%; }
+  .ing-row { display: grid; grid-template-columns: 2fr 1fr 2fr auto; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .modal-bg {
+    display: none; position: fixed; inset: 0; background: rgba(30,28,22,.35);
+    align-items: center; justify-content: center; z-index: 50;
+  }
+  .modal-bg.active { display: flex; }
+  .modal { background: #fff; border-radius: 12px; padding: 20px; width: 520px; max-width: 92vw; max-height: 86vh; overflow-y: auto; }
+  .modal h2 { margin: 0 0 14px; font-size: 15px; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  .empty { color: #8a8578; font-size: 13px; padding: 20px; text-align: center; }
+  .week-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .week-nav strong { font-size: 14px; }
+  .day-row { display: grid; grid-template-columns: 100px 1fr 1fr 1fr 1fr auto; gap: 8px; align-items: center; padding: 8px; border-bottom: 1px solid #f0ede4; }
+  .day-row:last-child { border-bottom: none; }
+  .day-label { font-weight: 600; font-size: 12.5px; }
+  .status-msg { font-size: 12px; padding: 6px 0; color: #8a8578; min-height: 18px; }
+  .status-msg.error { color: #b3261e; }
+  .small { font-size: 11.5px; color: #8a8578; }
+  .conn-status { font-size: 11.5px; color: #8a8578; margin-bottom: 10px; }
+  .conn-status.ok::before { content: "● "; color: #2e7d32; }
+  .conn-status.bad::before { content: "● "; color: #b3261e; }
+  .readiness-bar { height: 6px; border-radius: 4px; background: #f0ede4; overflow: hidden; margin: 6px 0 8px; }
+  .readiness-fill { height: 100%; background: #2e7d32; }
+  .readiness-label { font-size: 11.5px; color: #6b6656; font-weight: 600; }
+  .missing-list { font-size: 12.5px; margin: 6px 0 0; padding-left: 0; list-style: none; }
+  .missing-list li { padding: 2px 0; }
+  .toggle-row { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+
+  /* grocery shopping-app styling */
+  .add-item-form { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .add-item-form input[type=text] { flex: 1; min-width: 160px; }
+  .grocery-section { margin-bottom: 18px; }
+  .grocery-section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .grocery-section-header .sec-icon { font-size: 16px; }
+  .grocery-section-header h4 { margin: 0; font-size: 13.5px; color: #6b6656; }
+  .grocery-section-header .count { font-size: 11.5px; color: #a39d8c; }
+  .grocery-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    background: #fff; border: 1px solid #e5e1d8; border-radius: 8px; margin-bottom: 6px; font-size: 13.5px;
+  }
+  .grocery-item input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; }
+  .grocery-item .item-main { flex: 1; }
+  .grocery-item .item-name { font-weight: 500; }
+  .grocery-item .item-meta { font-size: 11.5px; color: #8a8578; margin-top: 2px; }
+  .grocery-item.checked { opacity: .45; }
+  .grocery-item.checked .item-name { text-decoration: line-through; }
+  .grocery-empty { text-align: center; padding: 40px 20px; color: #8a8578; }
+  .grocery-empty .big { font-size: 28px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Pantry & Meal Tracker</h1>
+<p class="subtitle">Live on Supabase (vera-core)</p>
+<p class="conn-status" id="conn-status">Connecting…</p>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="stock">Stock</button>
+  <button class="tab-btn" data-tab="recipes">Recipes</button>
+  <button class="tab-btn" data-tab="plan">Meal Plan</button>
+  <button class="tab-btn" data-tab="grocery">Grocery List</button>
+  <button class="tab-btn" data-tab="suggestions">Cook Now</button>
+</div>
+
+<!-- STOCK PANEL -->
+<div class="panel active" id="panel-stock">
+  <div class="toolbar">
+    <input type="text" id="stock-search" placeholder="Search items...">
+    <select id="stock-filter-category"><option value="">All sections</option></select>
+    <select id="stock-filter-status"><option value="">All statuses</option></select>
+    <div class="seg-group">
+      <button type="button" class="seg active" id="sort-section" data-sort="section">By section</button>
+      <button type="button" class="seg" id="sort-alpha" data-sort="alpha">A–Z</button>
+    </div>
+    <span style="flex:1"></span>
+    <button class="primary" id="btn-add-stock">+ Add item</button>
+  </div>
+  <div class="status-msg" id="stock-status"></div>
+  <table id="stock-table">
+    <thead><tr><th>Name</th><th>Section</th><th>Status</th><th>Expires</th><th>Watch</th><th>Notes</th><th></th></tr></thead>
+    <tbody id="stock-tbody"></tbody>
+  </table>
+</div>
+
+<!-- RECIPES PANEL -->
+<div class="panel" id="panel-recipes">
+  <div class="toolbar">
+    <select id="recipe-filter-theme"><option value="">All themes</option></select>
+    <span style="flex:1"></span>
+    <button class="primary" id="btn-add-recipe">+ Add recipe</button>
+  </div>
+  <div class="status-msg" id="recipe-status"></div>
+  <div id="recipe-list"></div>
+</div>
+
+<!-- MEAL PLAN PANEL -->
+<div class="panel" id="panel-plan">
+  <div class="week-nav">
+    <button id="week-prev">&larr; Prev week</button>
+    <strong id="week-label"></strong>
+    <button id="week-next">Next week &rarr;</button>
+    <button id="week-today" class="ghost">This week</button>
+  </div>
+  <div class="status-msg" id="plan-status"></div>
+  <div class="card" style="padding:0">
+    <div id="plan-days"></div>
+  </div>
+</div>
+
+<!-- GROCERY PANEL -->
+<div class="panel" id="panel-grocery">
+  <p class="small">Everything needed for the week shown in Meal Plan: ingredients you don't have enough of, plus anything else in Stock that's running low, plus whatever you add below.</p>
+  <div class="add-item-form">
+    <input type="text" id="extra-item-name" placeholder="Add something else to this week's list...">
+    <input type="text" id="extra-item-notes" placeholder="Notes (optional)" style="max-width:200px">
+    <button class="primary" id="btn-add-extra">+ Add</button>
+  </div>
+  <div class="status-msg" id="grocery-status"></div>
+  <div id="grocery-content"></div>
+</div>
+
+<!-- SUGGESTIONS PANEL -->
+<div class="panel" id="panel-suggestions">
+  <p class="small">Ranks your recipes by how many of their tracked ingredients are currently marked OK in Stock. Untracked ingredients can't be checked automatically.</p>
+  <div class="toolbar">
+    <label class="toggle-row"><input type="checkbox" id="sugg-ready-only" style="width:auto"> Only show fully stocked (tracked ingredients)</label>
+  </div>
+  <div class="status-msg" id="suggestions-status"></div>
+  <div id="suggestions-list"></div>
+</div>
+
+<!-- STOCK MODAL -->
+<div class="modal-bg" id="stock-modal">
+  <div class="modal">
+    <h2 id="stock-modal-title">Add stock item</h2>
+    <div class="form-grid">
+      <div class="full"><label>Name</label><input type="text" id="f-stock-name"></div>
+      <div><label>Section</label><select id="f-stock-category"></select></div>
+      <div><label>Status</label><select id="f-stock-status">
+        <option value="OK">OK</option><option value="LOW">LOW</option><option value="OUT">OUT</option>
+      </select></div>
+      <div><label>Expiration date</label><input type="date" id="f-stock-expiration"></div>
+      <div><label style="margin-top:18px"><input type="checkbox" id="f-stock-watch" style="width:auto"> Refresh watch (low-use / perishable)</label></div>
+      <div class="full"><label>Notes</label><textarea id="f-stock-notes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="ghost" id="stock-modal-cancel">Cancel</button>
+      <button class="primary" id="stock-modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECIPE MODAL -->
+<div class="modal-bg" id="recipe-modal">
+  <div class="modal">
+    <h2 id="recipe-modal-title">Add recipe</h2>
+    <div class="form-grid">
+      <div class="full"><label>Name</label><input type="text" id="f-recipe-name"></div>
+      <div><label>Theme</label><select id="f-recipe-theme"></select></div>
+      <div class="full"><label>Instructions</label><textarea id="f-recipe-instructions" rows="3"></textarea></div>
+      <div class="full"><label>Notes</label><textarea id="f-recipe-notes" rows="2"></textarea></div>
+    </div>
+    <label style="font-size:11.5px; color:#6b6656; font-weight:600;">Ingredients</label>
+    <div id="ing-rows"></div>
+    <button class="ghost" id="btn-add-ing-row" style="margin-bottom:10px">+ Add ingredient</button>
+    <div class="modal-footer">
+      <button class="ghost" id="recipe-modal-cancel">Cancel</button>
+      <button class="primary" id="recipe-modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+const SUPABASE_URL = window.SUPABASE_URL;
+const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Grocery-store walk order, replacing the old meal-based categories.
+const SECTIONS = [
+  { key: 'produce', label: 'Produce', icon: '🥬' },
+  { key: 'bakery', label: 'Bakery', icon: '🍞' },
+  { key: 'deli_prepared', label: 'Deli & Prepared', icon: '🍱' },
+  { key: 'meat_seafood', label: 'Meat & Seafood', icon: '🥩' },
+  { key: 'dairy_eggs', label: 'Dairy & Eggs', icon: '🥛' },
+  { key: 'frozen', label: 'Frozen', icon: '🧊' },
+  { key: 'pantry_dry_goods', label: 'Pantry & Dry Goods', icon: '🌾' },
+  { key: 'canned_goods', label: 'Canned Goods', icon: '🥫' },
+  { key: 'condiments_spices', label: 'Condiments & Spices', icon: '🧂' },
+  { key: 'snacks', label: 'Snacks', icon: '🍿' },
+  { key: 'beverages', label: 'Beverages', icon: '🥤' },
+  { key: 'household_other', label: 'Household & Other', icon: '🧴' },
+];
+const CATEGORIES = SECTIONS.map(s => s.key);
+const CATEGORY_LABELS = Object.fromEntries(SECTIONS.map(s => [s.key, s.label]));
+const SECTION_BY_KEY = Object.fromEntries(SECTIONS.map(s => [s.key, s]));
+
+const THEMES = ['Mexican','Thai','Asian','Crock Pot','Grab Night','Invention','Open'];
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+let stockItems = [];
+let recipes = [];
+let currentWeekStart = mondayOf(new Date());
+let planRows = [];
+let groceryExtras = [];
+let groceryDismissed = [];
+let stockSort = 'section'; // 'section' | 'alpha'
+
+function setStatus(id, msg, isError) {
+  const el = document.getElementById(id);
+  el.textContent = msg || '';
+  el.className = 'status-msg' + (isError ? ' error' : '');
+  if (msg && !isError) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ---------- date helpers ----------
+function mondayOf(d) {
+  const date = new Date(d);
+  const day = date.getDay(); // 0 Sun .. 6 Sat
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  date.setHours(0,0,0,0);
+  return date;
+}
+function fmtDate(d) {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), da = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${da}`;
+}
+function fmtDateLabel(d) {
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'grocery') renderGrocery();
+    if (btn.dataset.tab === 'suggestions') renderSuggestions();
+  });
+});
+
+// ================= STOCK =================
+function populateSelect(sel, values, labels) {
+  sel.innerHTML = values.map(v => `<option value="${v}">${labels ? labels[v] : v}</option>`).join('');
+}
+
+async function loadStock() {
+  try {
+    const { data, error } = await sb.from('stock_items').select('*').order('name');
+    if (error) throw error;
+    stockItems = data;
+    renderStock();
+  } catch (e) { setStatus('stock-status', 'Failed to load: ' + e.message, true); }
+}
+
+document.getElementById('sort-section').addEventListener('click', () => setStockSort('section'));
+document.getElementById('sort-alpha').addEventListener('click', () => setStockSort('alpha'));
+function setStockSort(mode) {
+  stockSort = mode;
+  document.getElementById('sort-section').classList.toggle('active', mode === 'section');
+  document.getElementById('sort-alpha').classList.toggle('active', mode === 'alpha');
+  renderStock();
+}
+
+function renderStock() {
+  const search = document.getElementById('stock-search').value.toLowerCase();
+  const catFilter = document.getElementById('stock-filter-category').value;
+  const statusFilter = document.getElementById('stock-filter-status').value;
+  const tbody = document.getElementById('stock-tbody');
+  const rows = stockItems.filter(it =>
+    (!search || it.name.toLowerCase().includes(search)) &&
+    (!catFilter || it.category === catFilter) &&
+    (!statusFilter || it.status === statusFilter)
+  );
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty">No stock items match.</div></td></tr>`;
+    return;
+  }
+
+  function itemRow(it) {
+    return `
+    <tr>
+      <td>${escHtml(it.name)}</td>
+      <td>${CATEGORY_LABELS[it.category] || it.category}</td>
+      <td><span class="badge badge-${it.status}">${it.status}</span></td>
+      <td>${it.expiration_date || '—'}</td>
+      <td>${it.refresh_watch ? '<span class="flag">&#9873;</span>' : ''}</td>
+      <td>${escHtml(it.notes || '')}</td>
+      <td>
+        <button class="ghost" onclick="editStock('${it.id}')">Edit</button>
+        <button class="ghost danger" onclick="deleteStock('${it.id}')">Delete</button>
+      </td>
+    </tr>`;
+  }
+
+  if (stockSort === 'alpha') {
+    const sorted = [...rows].sort((a, b) => a.name.localeCompare(b.name));
+    tbody.innerHTML = sorted.map(itemRow).join('');
+  } else {
+    let html = '';
+    SECTIONS.forEach(sec => {
+      const items = rows.filter(it => it.category === sec.key).sort((a, b) => a.name.localeCompare(b.name));
+      if (!items.length) return;
+      html += `<tr class="section-row"><td colspan="7">${sec.icon} ${sec.label} (${items.length})</td></tr>`;
+      html += items.map(itemRow).join('');
+    });
+    tbody.innerHTML = html || `<tr><td colspan="7"><div class="empty">No stock items match.</div></td></tr>`;
+  }
+}
+
+let editingStockId = null;
+document.getElementById('btn-add-stock').addEventListener('click', () => openStockModal());
+document.getElementById('stock-modal-cancel').addEventListener('click', () => closeModal('stock-modal'));
+['stock-search','stock-filter-category','stock-filter-status'].forEach(id =>
+  document.getElementById(id).addEventListener('input', renderStock));
+
+function openStockModal(item) {
+  editingStockId = item ? item.id : null;
+  document.getElementById('stock-modal-title').textContent = item ? 'Edit stock item' : 'Add stock item';
+  document.getElementById('f-stock-name').value = item ? item.name : '';
+  document.getElementById('f-stock-category').value = item ? item.category : CATEGORIES[0];
+  document.getElementById('f-stock-status').value = item ? item.status : 'OK';
+  document.getElementById('f-stock-expiration').value = item && item.expiration_date ? item.expiration_date : '';
+  document.getElementById('f-stock-watch').checked = item ? !!item.refresh_watch : false;
+  document.getElementById('f-stock-notes').value = item ? (item.notes || '') : '';
+  openModal('stock-modal');
+}
+window.editStock = (id) => openStockModal(stockItems.find(s => s.id === id));
+window.deleteStock = async (id) => {
+  if (!confirm('Delete this stock item?')) return;
+  try {
+    const { error } = await sb.from('stock_items').delete().eq('id', id);
+    if (error) throw error;
+    await loadStock();
+    setStatus('stock-status', 'Deleted.');
+  } catch (e) { setStatus('stock-status', 'Delete failed: ' + e.message, true); }
+};
+
+document.getElementById('stock-modal-save').addEventListener('click', async () => {
+  const name = document.getElementById('f-stock-name').value.trim();
+  if (!name) { setStatus('stock-status', 'Name is required.', true); return; }
+  const category = document.getElementById('f-stock-category').value;
+  const status = document.getElementById('f-stock-status').value;
+  const expiration = document.getElementById('f-stock-expiration').value || null;
+  const watch = document.getElementById('f-stock-watch').checked;
+  const notes = document.getElementById('f-stock-notes').value.trim() || null;
+  try {
+    if (editingStockId) {
+      const { error } = await sb.from('stock_items').update({
+        name, category, status, expiration_date: expiration, refresh_watch: watch, notes, updated_at: new Date().toISOString()
+      }).eq('id', editingStockId);
+      if (error) throw error;
+    } else {
+      const { error } = await sb.from('stock_items').insert({
+        name, category, status, expiration_date: expiration, refresh_watch: watch, notes
+      });
+      if (error) throw error;
+    }
+    closeModal('stock-modal');
+    await loadStock();
+    setStatus('stock-status', 'Saved.');
+  } catch (e) { setStatus('stock-status', 'Save failed: ' + e.message, true); }
+});
+
+// ================= RECIPES =================
+async function loadRecipes() {
+  try {
+    const { data, error } = await sb.from('recipes')
+      .select('*, recipe_ingredients(id, ingredient_name, quantity, stock_item_id)')
+      .order('name');
+    if (error) throw error;
+    recipes = data.map(r => ({ ...r, ingredients: r.recipe_ingredients || [] }));
+    renderRecipes();
+  } catch (e) { setStatus('recipe-status', 'Failed to load: ' + e.message, true); }
+}
+
+function renderRecipes() {
+  const themeFilter = document.getElementById('recipe-filter-theme').value;
+  const list = recipes.filter(r => !themeFilter || r.theme === themeFilter);
+  const container = document.getElementById('recipe-list');
+  if (!list.length) { container.innerHTML = '<div class="empty">No recipes yet.</div>'; return; }
+  container.innerHTML = list.map(r => {
+    const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
+    const ingHtml = (r.ingredients || []).map(ing => {
+      const s = ing.stock_item_id ? stockById[ing.stock_item_id] : null;
+      const badge = s ? `<span class="badge badge-${s.status}">${s.status}</span>` : `<span class="small">not tracked</span>`;
+      return `<li>${escHtml(ing.ingredient_name)}${ing.quantity ? ' — ' + escHtml(ing.quantity) : ''} ${badge}</li>`;
+    }).join('');
+    return `
+      <div class="card">
+        <h3>${escHtml(r.name)} ${r.theme ? `<span class="theme-tag">${r.theme}</span>` : ''}</h3>
+        ${r.instructions ? `<div class="card-meta">${escHtml(r.instructions)}</div>` : ''}
+        ${ingHtml ? `<ul class="ing-list">${ingHtml}</ul>` : '<p class="small">No ingredients listed.</p>'}
+        ${r.notes ? `<p class="small">${escHtml(r.notes)}</p>` : ''}
+        <div class="card-actions">
+          <button class="ghost" onclick="editRecipe('${r.id}')">Edit</button>
+          <button class="ghost danger" onclick="deleteRecipe('${r.id}')">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+let editingRecipeId = null;
+document.getElementById('recipe-filter-theme').addEventListener('input', renderRecipes);
+document.getElementById('btn-add-recipe').addEventListener('click', () => openRecipeModal());
+document.getElementById('recipe-modal-cancel').addEventListener('click', () => closeModal('recipe-modal'));
+document.getElementById('btn-add-ing-row').addEventListener('click', () => addIngRow());
+
+function ingRowHtml(ing) {
+  const options = ['<option value="">(not tracked)</option>']
+    .concat(stockItems.map(s => `<option value="${s.id}" ${ing && ing.stock_item_id === s.id ? 'selected' : ''}>${escHtml(s.name)}</option>`));
+  return `
+    <div class="ing-row">
+      <input type="text" class="ing-name" placeholder="Ingredient" value="${ing ? escHtml(ing.ingredient_name) : ''}">
+      <input type="text" class="ing-qty" placeholder="Qty" value="${ing ? escHtml(ing.quantity || '') : ''}">
+      <select class="ing-stock">${options.join('')}</select>
+      <button class="ghost danger" type="button" onclick="this.parentElement.remove()">&times;</button>
+    </div>
+  `;
+}
+function addIngRow(ing) {
+  document.getElementById('ing-rows').insertAdjacentHTML('beforeend', ingRowHtml(ing));
+}
+
+function openRecipeModal(recipe) {
+  editingRecipeId = recipe ? recipe.id : null;
+  document.getElementById('recipe-modal-title').textContent = recipe ? 'Edit recipe' : 'Add recipe';
+  document.getElementById('f-recipe-name').value = recipe ? recipe.name : '';
+  document.getElementById('f-recipe-theme').value = recipe ? (recipe.theme || '') : '';
+  document.getElementById('f-recipe-instructions').value = recipe ? (recipe.instructions || '') : '';
+  document.getElementById('f-recipe-notes').value = recipe ? (recipe.notes || '') : '';
+  document.getElementById('ing-rows').innerHTML = '';
+  if (recipe && recipe.ingredients && recipe.ingredients.length) {
+    recipe.ingredients.forEach(ing => addIngRow(ing));
+  } else {
+    addIngRow();
+  }
+  openModal('recipe-modal');
+}
+window.editRecipe = (id) => openRecipeModal(recipes.find(r => r.id === id));
+window.deleteRecipe = async (id) => {
+  if (!confirm('Delete this recipe and its ingredient list?')) return;
+  try {
+    const { error } = await sb.from('recipes').delete().eq('id', id);
+    if (error) throw error;
+    await loadRecipes();
+    setStatus('recipe-status', 'Deleted.');
+  } catch (e) { setStatus('recipe-status', 'Delete failed: ' + e.message, true); }
+};
+
+document.getElementById('recipe-modal-save').addEventListener('click', async () => {
+  const name = document.getElementById('f-recipe-name').value.trim();
+  if (!name) { setStatus('recipe-status', 'Name is required.', true); return; }
+  const theme = document.getElementById('f-recipe-theme').value || null;
+  const instructions = document.getElementById('f-recipe-instructions').value.trim() || null;
+  const notes = document.getElementById('f-recipe-notes').value.trim() || null;
+  const ingRows = Array.from(document.querySelectorAll('#ing-rows .ing-row')).map(row => ({
+    name: row.querySelector('.ing-name').value.trim(),
+    qty: row.querySelector('.ing-qty').value.trim() || null,
+    stockId: row.querySelector('.ing-stock').value || null
+  })).filter(r => r.name);
+
+  try {
+    let recipeId = editingRecipeId;
+    if (recipeId) {
+      const { error } = await sb.from('recipes').update({
+        name, theme, instructions, notes, updated_at: new Date().toISOString()
+      }).eq('id', recipeId);
+      if (error) throw error;
+      const { error: delErr } = await sb.from('recipe_ingredients').delete().eq('recipe_id', recipeId);
+      if (delErr) throw delErr;
+    } else {
+      const { data, error } = await sb.from('recipes').insert({ name, theme, instructions, notes }).select('id').single();
+      if (error) throw error;
+      recipeId = data.id;
+    }
+    if (ingRows.length) {
+      const rows = ingRows.map(ing => ({
+        recipe_id: recipeId, stock_item_id: ing.stockId, ingredient_name: ing.name, quantity: ing.qty
+      }));
+      const { error: insErr } = await sb.from('recipe_ingredients').insert(rows);
+      if (insErr) throw insErr;
+    }
+    closeModal('recipe-modal');
+    await loadRecipes();
+    setStatus('recipe-status', 'Saved.');
+  } catch (e) { setStatus('recipe-status', 'Save failed: ' + e.message, true); }
+});
+
+// ================= MEAL PLAN =================
+async function loadPlan() {
+  const weekStr = fmtDate(currentWeekStart);
+  document.getElementById('week-label').textContent =
+    fmtDateLabel(currentWeekStart) + ' – ' + fmtDateLabel(addDays(currentWeekStart, 6));
+  try {
+    const { data, error } = await sb.from('meal_plan')
+      .select('*, recipe:recipes(name)')
+      .eq('week_start_date', weekStr);
+    if (error) throw error;
+    planRows = data.map(r => ({ ...r, recipe_name: r.recipe ? r.recipe.name : null }));
+    renderPlan();
+  } catch (e) { setStatus('plan-status', 'Failed to load: ' + e.message, true); }
+}
+
+function renderPlan() {
+  const byDay = Object.fromEntries(planRows.map(r => [r.day_of_week, r]));
+  const container = document.getElementById('plan-days');
+  container.innerHTML = DAYS.map(day => {
+    const row = byDay[day] || {};
+    const themeOptions = ['<option value="">—</option>'].concat(
+      THEMES.map(t => `<option value="${t}" ${row.theme === t ? 'selected' : ''}>${t}</option>`)
+    ).join('');
+    const recipeOptions = ['<option value="">(none)</option>'].concat(
+      recipes.map(r => `<option value="${r.id}" ${row.recipe_id === r.id ? 'selected' : ''}>${escHtml(r.name)}</option>`)
+    ).join('');
+    return `
+      <div class="day-row" data-day="${day}">
+        <div class="day-label">${day}</div>
+        <select class="plan-theme">${themeOptions}</select>
+        <select class="plan-recipe">${recipeOptions}</select>
+        <input type="text" class="plan-mealname" placeholder="Meal name (optional)" value="${escHtml(row.meal_name || '')}">
+        <input type="text" class="plan-notes" placeholder="Notes" value="${escHtml(row.notes || '')}">
+        <button class="primary plan-save">Save</button>
+      </div>
+    `;
+  }).join('');
+  container.querySelectorAll('.plan-save').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const rowEl = e.target.closest('.day-row');
+      const day = rowEl.dataset.day;
+      const theme = rowEl.querySelector('.plan-theme').value || null;
+      const recipeId = rowEl.querySelector('.plan-recipe').value || null;
+      const mealName = rowEl.querySelector('.plan-mealname').value.trim() || null;
+      const notes = rowEl.querySelector('.plan-notes').value.trim() || null;
+      try {
+        const { error } = await sb.from('meal_plan').upsert({
+          week_start_date: fmtDate(currentWeekStart), day_of_week: day, theme,
+          recipe_id: recipeId, meal_name: mealName, notes, updated_at: new Date().toISOString()
+        }, { onConflict: 'week_start_date,day_of_week' });
+        if (error) throw error;
+        setStatus('plan-status', day + ' saved.');
+        await loadPlan();
+      } catch (err) { setStatus('plan-status', 'Save failed: ' + err.message, true); }
+    });
+  });
+}
+
+document.getElementById('week-prev').addEventListener('click', () => { currentWeekStart = addDays(currentWeekStart, -7); loadPlan(); });
+document.getElementById('week-next').addEventListener('click', () => { currentWeekStart = addDays(currentWeekStart, 7); loadPlan(); });
+document.getElementById('week-today').addEventListener('click', () => { currentWeekStart = mondayOf(new Date()); loadPlan(); });
+
+// ================= GROCERY LIST =================
+async function loadGroceryExtras() {
+  const weekStr = fmtDate(currentWeekStart);
+  const { data, error } = await sb.from('grocery_extra_items').select('*').eq('week_start_date', weekStr).order('created_at');
+  if (error) throw error;
+  groceryExtras = data;
+}
+
+async function loadGroceryDismissed() {
+  const weekStr = fmtDate(currentWeekStart);
+  const { data, error } = await sb.from('grocery_dismissed_items').select('*').eq('week_start_date', weekStr);
+  if (error) throw error;
+  groceryDismissed = data;
+}
+
+document.getElementById('btn-add-extra').addEventListener('click', async () => {
+  const nameEl = document.getElementById('extra-item-name');
+  const notesEl = document.getElementById('extra-item-notes');
+  const name = nameEl.value.trim();
+  if (!name) return;
+  const notes = notesEl.value.trim() || null;
+  try {
+    const { error } = await sb.from('grocery_extra_items').insert({
+      week_start_date: fmtDate(currentWeekStart), item_name: name, notes
+    });
+    if (error) throw error;
+    nameEl.value = '';
+    notesEl.value = '';
+    await renderGrocery();
+  } catch (e) { setStatus('grocery-status', 'Add failed: ' + e.message, true); }
+});
+window.deleteGroceryExtra = async (id) => {
+  try {
+    const { error } = await sb.from('grocery_extra_items').delete().eq('id', id);
+    if (error) throw error;
+    await renderGrocery();
+  } catch (e) { setStatus('grocery-status', 'Delete failed: ' + e.message, true); }
+};
+window.dismissGroceryItem = async (key) => {
+  try {
+    const { error } = await sb.from('grocery_dismissed_items').upsert({
+      week_start_date: fmtDate(currentWeekStart), item_key: key
+    }, { onConflict: 'week_start_date,item_key' });
+    if (error) throw error;
+    await renderGrocery();
+  } catch (e) { setStatus('grocery-status', 'Failed to remove: ' + e.message, true); }
+};
+window.restoreGroceryItem = async (key) => {
+  try {
+    const { error } = await sb.from('grocery_dismissed_items')
+      .delete().eq('week_start_date', fmtDate(currentWeekStart)).eq('item_key', key);
+    if (error) throw error;
+    await renderGrocery();
+  } catch (e) { setStatus('grocery-status', 'Failed to restore: ' + e.message, true); }
+};
+
+// cache of the last computed grocery data, so checkbox toggles can re-render without refetching
+let lastGroceryData = null;
+
+async function renderGrocery() {
+  const container = document.getElementById('grocery-content');
+  try {
+    await loadGroceryExtras();
+    await loadGroceryDismissed();
+    const dismissedKeySet = new Set(groceryDismissed.map(d => d.item_key));
+
+    const recipeIds = [...new Set(planRows.filter(r => r.recipe_id).map(r => r.recipe_id))];
+    let ingredientRows = [];
+    if (recipeIds.length) {
+      const { data, error } = await sb.from('recipe_ingredients')
+        .select('ingredient_name, quantity, stock_item_id, recipe:recipes(name)')
+        .in('recipe_id', recipeIds);
+      if (error) throw error;
+      ingredientRows = data;
+    }
+
+    const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
+
+    // sectioned needs, keyed by stock_item_id when tracked
+    const bySectionMap = new Map(); // key -> {section, name, status, reasons:[]}
+    const untracked = []; // recipe ingredients with no stock link
+    const seenUntracked = new Set();
+
+    ingredientRows.forEach(row => {
+      const recipeName = row.recipe ? row.recipe.name : null;
+      if (row.stock_item_id) {
+        const s = stockById[row.stock_item_id];
+        if (!s) return;
+        if (s.status === 'OK') return; // hide OK, only show what's actually needed
+        const key = 'stock:' + s.id;
+        if (!bySectionMap.has(key)) {
+          bySectionMap.set(key, { key, section: s.category, name: s.name, status: s.status, reasons: [] });
+        }
+        if (recipeName) bySectionMap.get(key).reasons.push(recipeName);
+      } else {
+        const uKey = 'untracked:' + row.ingredient_name.toLowerCase();
+        if (!seenUntracked.has(uKey)) {
+          seenUntracked.add(uKey);
+          untracked.push({ key: uKey, name: row.ingredient_name, quantity: row.quantity, reasons: recipeName ? [recipeName] : [] });
+        } else {
+          const existing = untracked.find(u => u.key === uKey);
+          if (recipeName && !existing.reasons.includes(recipeName)) existing.reasons.push(recipeName);
+        }
+      }
+    });
+
+    // any stock item that's LOW/OUT, regardless of this week's recipes
+    stockItems.forEach(s => {
+      if (s.status !== 'LOW' && s.status !== 'OUT') return;
+      const key = 'stock:' + s.id;
+      if (!bySectionMap.has(key)) {
+        bySectionMap.set(key, { key, section: s.category, name: s.name, status: s.status, reasons: [] });
+      }
+    });
+
+    const extras = groceryExtras.map(e => ({ key: 'extra:' + e.id, id: e.id, name: e.item_name, notes: e.notes }));
+
+    // split into active (shown, actionable) vs dismissed (removed, restorable)
+    const allSectionItems = [...bySectionMap.values()];
+    const activeSectionItems = allSectionItems.filter(it => !dismissedKeySet.has(it.key));
+    const dismissedSectionItems = allSectionItems.filter(it => dismissedKeySet.has(it.key));
+    const activeUntracked = untracked.filter(it => !dismissedKeySet.has(it.key));
+    const dismissedUntracked = untracked.filter(it => dismissedKeySet.has(it.key));
+
+    lastGroceryData = {
+      activeSectionItems, dismissedSectionItems,
+      activeUntracked, dismissedUntracked,
+      extras
+    };
+    renderGroceryDom();
+  } catch (e) { setStatus('grocery-status', 'Failed to load: ' + e.message, true); }
+}
+
+function renderGroceryDom() {
+  if (!lastGroceryData) return;
+  const { activeSectionItems, dismissedSectionItems, activeUntracked, dismissedUntracked, extras } = lastGroceryData;
+  const container = document.getElementById('grocery-content');
+
+  const activeCount = activeSectionItems.length + activeUntracked.length + extras.length;
+  const dismissedCount = dismissedSectionItems.length + dismissedUntracked.length;
+
+  let html = '';
+
+  if (!activeCount) {
+    html += `<div class="grocery-empty"><div class="big">✓</div>Nothing needed right now.<br>Nice job staying stocked.</div>`;
+  } else {
+    SECTIONS.forEach(sec => {
+      const items = activeSectionItems.filter(it => it.section === sec.key).sort((a, b) => a.name.localeCompare(b.name));
+      if (!items.length) return;
+      html += `<div class="grocery-section">
+        <div class="grocery-section-header"><span class="sec-icon">${sec.icon}</span><h4>${sec.label}</h4><span class="count">${items.length}</span></div>
+        ${items.map(it => `<div class="grocery-item">
+            <input type="checkbox" onchange="dismissGroceryItem('${it.key}')">
+            <div class="item-main">
+              <div class="item-name">${escHtml(it.name)}</div>
+              <div class="item-meta"><span class="badge badge-${it.status}">${it.status}</span> ${it.reasons.length ? escHtml('needed for ' + it.reasons.join(', ')) : ''}</div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+    });
+
+    if (activeUntracked.length) {
+      html += `<div class="grocery-section">
+        <div class="grocery-section-header"><span class="sec-icon">❔</span><h4>Not tracked in Stock</h4><span class="count">${activeUntracked.length}</span></div>
+        ${activeUntracked.map(it => `<div class="grocery-item">
+            <input type="checkbox" onchange="dismissGroceryItem('${it.key}')">
+            <div class="item-main">
+              <div class="item-name">${escHtml(it.name)}${it.quantity ? ' — ' + escHtml(it.quantity) : ''}</div>
+              <div class="item-meta">${it.reasons.length ? escHtml('needed for ' + it.reasons.join(', ')) : ''}</div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+    }
+
+    if (extras.length) {
+      html += `<div class="grocery-section">
+        <div class="grocery-section-header"><span class="sec-icon">➕</span><h4>Added by you</h4><span class="count">${extras.length}</span></div>
+        ${extras.map(it => `<div class="grocery-item">
+            <div class="item-main">
+              <div class="item-name">${escHtml(it.name)}</div>
+              ${it.notes ? `<div class="item-meta">${escHtml(it.notes)}</div>` : ''}
+            </div>
+            <button class="ghost danger" onclick="deleteGroceryExtra('${it.id}')">Remove</button>
+          </div>`).join('')}
+      </div>`;
+    }
+  }
+
+  if (dismissedCount) {
+    const allDismissed = [...dismissedSectionItems, ...dismissedUntracked];
+    html += `<div class="grocery-section">
+      <div class="grocery-section-header"><span class="sec-icon">✓</span><h4>Removed this week</h4><span class="count">${dismissedCount}</span></div>
+      ${allDismissed.map(it => `<div class="grocery-item checked">
+          <div class="item-main"><div class="item-name">${escHtml(it.name)}</div></div>
+          <button class="ghost" onclick="restoreGroceryItem('${it.key}')">Restore</button>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+// ================= COOK NOW (stock-based suggestions) =================
+document.getElementById('sugg-ready-only').addEventListener('change', renderSuggestions);
+
+function computeReadiness(recipe, stockById) {
+  const ings = recipe.ingredients || [];
+  let ok = 0, tracked = 0;
+  const missing = [];
+  ings.forEach(ing => {
+    if (ing.stock_item_id) {
+      tracked++;
+      const s = stockById[ing.stock_item_id];
+      if (s && s.status === 'OK') { ok++; return; }
+      missing.push({ name: ing.ingredient_name, status: s ? s.status : null });
+    } else {
+      missing.push({ name: ing.ingredient_name, status: null });
+    }
+  });
+  const score = tracked > 0 ? ok / tracked : null;
+  return { ok, tracked, total: ings.length, missing, score };
+}
+
+function renderSuggestions() {
+  const container = document.getElementById('suggestions-list');
+  const readyOnly = document.getElementById('sugg-ready-only').checked;
+  if (!recipes.length) { container.innerHTML = '<div class="empty">No recipes yet.</div>'; return; }
+  const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
+  let rows = recipes.map(r => ({ recipe: r, readiness: computeReadiness(r, stockById) }));
+
+  if (readyOnly) {
+    rows = rows.filter(row => row.readiness.tracked > 0 && row.readiness.ok === row.readiness.tracked);
+  }
+
+  rows.sort((a, b) => {
+    const sa = a.readiness.score, sb = b.readiness.score;
+    if (sa === null && sb === null) return 0;
+    if (sa === null) return 1;
+    if (sb === null) return -1;
+    return sb - sa;
+  });
+
+  if (!rows.length) {
+    container.innerHTML = '<div class="empty">Nothing fully stocked right now — try unchecking the filter to see closest matches.</div>';
+    return;
+  }
+
+  container.innerHTML = rows.map(({ recipe: r, readiness }) => {
+    const pct = readiness.score === null ? 0 : Math.round(readiness.score * 100);
+    const label = readiness.tracked > 0
+      ? `${readiness.ok} of ${readiness.tracked} tracked ingredients in stock`
+      : 'No tracked ingredients — link ingredients to stock items to see readiness';
+    const missingHtml = readiness.missing.map(m => {
+      const badge = m.status
+        ? `<span class="badge badge-${m.status}">${m.status}</span>`
+        : '<span class="small">not tracked</span>';
+      return `<li>${escHtml(m.name)} ${badge}</li>`;
+    }).join('');
+    return `
+      <div class="card">
+        <h3>${escHtml(r.name)} ${r.theme ? `<span class="theme-tag">${r.theme}</span>` : ''}</h3>
+        <div class="readiness-bar"><div class="readiness-fill" style="width:${pct}%"></div></div>
+        <div class="readiness-label">${label}</div>
+        ${missingHtml ? `<ul class="missing-list">${missingHtml}</ul>` : '<p class="small">Everything tracked is in stock.</p>'}
+      </div>
+    `;
+  }).join('');
+}
+
+// ================= modal helpers =================
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ================= init =================
+async function init() {
+  populateSelect(document.getElementById('f-stock-category'), CATEGORIES, CATEGORY_LABELS);
+  populateSelect(document.getElementById('stock-filter-category'), CATEGORIES, CATEGORY_LABELS);
+  document.getElementById('stock-filter-category').insertAdjacentHTML('afterbegin', '<option value="">All sections</option>');
+  document.getElementById('stock-filter-status').insertAdjacentHTML('beforeend',
+    '<option value="OK">OK</option><option value="LOW">LOW</option><option value="OUT">OUT</option>');
+  populateSelect(document.getElementById('f-recipe-theme'), [''].concat(THEMES), Object.fromEntries([['','(none)'],...THEMES.map(t=>[t,t])]));
+  document.getElementById('recipe-filter-theme').insertAdjacentHTML('beforeend',
+    THEMES.map(t => `<option value="${t}">${t}</option>`).join(''));
+
+  const connEl = document.getElementById('conn-status');
+  try {
+    const { error } = await sb.from('recipes').select('id', { count: 'exact', head: true });
+    if (error) throw error;
+    connEl.textContent = 'Connected to Supabase (vera-core)';
+    connEl.className = 'conn-status ok';
+  } catch (e) {
+    connEl.textContent = 'Connection failed: ' + e.message;
+    connEl.className = 'conn-status bad';
+    return;
+  }
+
+  await loadStock();
+  await loadRecipes();
+  await loadPlan();
+}
+init();
+</script>
+</body>
+</html>
