@@ -83,6 +83,7 @@
   .status-msg.error { color: #b3261e; }
   .small { font-size: 11.5px; color: #8a8578; }
   .conn-status { font-size: 11.5px; color: #8a8578; margin-bottom: 10px; }
+  .conn-status:empty { display: none; }
   .conn-status.ok::before { content: "● "; color: #2e7d32; }
   .conn-status.bad::before { content: "● "; color: #b3261e; }
   .readiness-bar { height: 6px; border-radius: 4px; background: #f0ede4; overflow: hidden; margin: 6px 0 8px; }
@@ -169,7 +170,7 @@ button.card-face:focus-visible {
 <body>
 
 <h1>GalleyQuest</h1>
-<p class="subtitle">Pantry &amp; meal tracker &middot; live on Supabase (vera-core)</p>
+<p class="subtitle">Pantry &amp; Meal Tracker</p>
 <p class="conn-status" id="conn-status">Connecting…</p>
 
 <div class="tabs">
@@ -183,7 +184,7 @@ button.card-face:focus-visible {
 <!-- STOCK PANEL -->
 <div class="panel active" id="panel-stock">
   <div class="toolbar">
-    <input type="text" id="stock-search" placeholder="Search items...">
+    <input type="text" id="stock-search" placeholder="Search items…">
     <select id="stock-filter-category"><option value="">All sections</option></select>
     <select id="stock-filter-status"><option value="">All statuses</option></select>
     <div class="seg-group">
@@ -229,7 +230,7 @@ button.card-face:focus-visible {
 <div class="panel" id="panel-grocery">
   <p class="small">Everything needed for the week shown in Meal Plan: ingredients you don't have enough of, plus anything else in Stock that's running low, plus whatever you add below.</p>
   <div class="add-item-form">
-    <input type="text" id="extra-item-name" placeholder="Add something else to this week's list...">
+    <input type="text" id="extra-item-name" placeholder="Add something else to this week's list…">
     <input type="text" id="extra-item-notes" placeholder="Notes (optional)" style="max-width:200px">
     <button class="primary" id="btn-add-extra">+ Add</button>
   </div>
@@ -1025,8 +1026,8 @@ async function init() {
   try {
     const { error } = await sb.from('recipes').select('id', { count: 'exact', head: true });
     if (error) throw error;
-    connEl.textContent = 'Connected to Supabase (vera-core)';
-    connEl.className = 'conn-status ok';
+    connEl.textContent = '';
+    connEl.className = 'conn-status';
   } catch (e) {
     connEl.textContent = 'Connection failed: ' + e.message;
     connEl.className = 'conn-status bad';
