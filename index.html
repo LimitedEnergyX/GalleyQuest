@@ -128,7 +128,6 @@
 .card.collapsible { padding: 0; overflow: hidden; }
 .card.collapsible .card-details { display: none; padding: 0 14px 14px; }
 .card.collapsible.expanded .card-details { display: block; }
-.card.collapsible.expanded { grid-column: 1 / -1; }
 
 button.card-face {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -165,6 +164,21 @@ button.card-face:focus-visible {
 .grocery-card-row > .ghost { margin: 0 0 0 12px; flex: 0 0 auto; }
 .grocery-card-row > button.card-face { flex: 1 1 auto; width: auto; }
 .grocery-section > .card-grid { margin-top: 6px; }
+
+/* Recipes tab: cards styled like a handwritten recipe index card */
+#recipe-list .card.collapsible {
+  border: 1px solid #d9cfa6;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(90,70,25,0.16);
+  background-color: #fffdf3;
+  background-image:
+    linear-gradient(to right, transparent 30px, #e7bcbc 30px, #e7bcbc 31px, transparent 31px),
+    repeating-linear-gradient(transparent, transparent 27px, #d3e3ec 27px, #d3e3ec 28px);
+  background-attachment: local;
+}
+#recipe-list .card.collapsible > .card-face,
+#recipe-list .card.collapsible > .card-details { padding-left: 40px; }
+#recipe-list .card.collapsible .card-title { font-size: 15px; }
 </style>
 </head>
 <body>
@@ -316,7 +330,7 @@ const CATEGORIES = SECTIONS.map(s => s.key);
 const CATEGORY_LABELS = Object.fromEntries(SECTIONS.map(s => [s.key, s.label]));
 const SECTION_BY_KEY = Object.fromEntries(SECTIONS.map(s => [s.key, s]));
 
-const THEMES = ['Mexican','Tex-Mex','Southwest','Mediterranean','Thai','Asian','Crock Pot','Grab Night','Invention','Open'];
+const THEMES = ['Mexican','Thai','Asian','Crock Pot','Grab Night','Invention','Open'];
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
 let stockItems = [];

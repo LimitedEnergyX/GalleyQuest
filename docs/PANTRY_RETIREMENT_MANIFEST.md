@@ -70,7 +70,7 @@ All ARCHIVE-ONLY items are fully preserved in the recovery ZIP (including `.git`
 - Archive created, opens, includes `.git` + HEAD, SHA-256 verified unchanged.
 - GalleyQuest app source unchanged (empty `git diff`); no PANTRY copy overwrote it.
 - GalleyQuest app starts on `:8000`, no console errors, `config.js` loads, 28 recipes render, 10 themes present.
-- Offline harness serves from `.local/pantry-snapshot` on `:8011` (offline banner, local-db shim), then stopped.
+- Offline harness serves from `.local/pantry-snapshot` (offline banner, local-db shim), then stopped. Its configured default port is **8001** (`serve.py`); `:8011` was a one-off override during verification to avoid a clash — not the default.
 - Secret scan of tracked/committable files: clean (no key / JWT / password / token).
 - `git status`: only intentional changes; `.local/` and `config.js` git-ignored.
 

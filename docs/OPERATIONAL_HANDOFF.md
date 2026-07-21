@@ -63,12 +63,14 @@ passwords, JWTs, connection strings) appear here — names and locations only.
 - **`recipes.theme` constraint:** CHECK constraint **`recipes_theme_check`**
   (confirmed by a live 400, code `23514`). Restricts `theme` to a fixed set or
   NULL; empty string is rejected.
-- **Current valid theme values (live DB):** `Mexican, Thai, Asian, Crock Pot,
-  Grab Night, Invention, Open`, or NULL.
-  **Pending mismatch:** the *code* list (`THEMES` in `index.html`) was extended
-  with `Tex-Mex, Southwest, Mediterranean`, but the **live DB constraint was NOT
-  changed** (no DDL access). Saving a recipe with a new theme is currently
-  rejected by the DB. Intentionally left unresolved.
+- **Accepted theme values (empirically verified against the live DB, 2026-07-20,
+  by PATCHing one temporary recipe through every value):** `Mexican, Thai, Asian,
+  Crock Pot, Grab Night, Invention, Open` — or NULL.
+- **Rejected:** `Tex-Mex, Southwest, Mediterranean` → HTTP 400, pg error `23514`,
+  constraint **`recipes_theme_check`** (empty string also rejected).
+- The app `THEMES` list (`index.html`) is set to exactly the 7 accepted values —
+  **no code/DB mismatch.** Adding the three cuisine themes would need DDL on
+  `recipes_theme_check` (elevated access not available locally).
 - **`meal_plan.theme`:** **unconstrained** (verified: a test insert with an
   arbitrary theme succeeded, then was deleted).
 - **Authoritative schema / migrations:** **none.** No migrations directory, no
@@ -104,9 +106,25 @@ $H = @{ apikey=$sbKey; Authorization="Bearer $sbKey"; 'Content-Type'='applicatio
 - **Authoritative row count:** read the `Content-Range` header with
   `Prefer: count=exact`. (In PowerShell, `@($rows).Count` mis-reports an empty
   result as `1` because `@($null).Count == 1` — don't trust it for counts.)
-- **Backups:** export recipes (with embedded ingredients) to a timestamped JSON
-  file before any bulk change. The last session backup was written to a temporary
-  scratch path (ephemeral); for durable backups write under `.local\` (git-ignored).
+- **Backups:** before any bulk change, export the six tables to a timestamped
+  folder under `.local\backups\<timestamp>\` (git-ignored) with a
+  `backup-manifest.json` (row counts, project ref, per-file SHA-256).
+
+### Database readiness (verified 2026-07-20)
+
+- **Baseline = final counts** (no residue after tests): recipes **28**,
+  recipe_ingredients **266**, stock_items 170, meal_plan 7, grocery_extra_items 0,
+  grocery_dismissed_items 8.
+- **Recipe CRUD** verified — create / update-theme / delete, via the API and
+  through the app's Add/Edit Recipe modal (accepted theme).
+- **Ingredient CRUD** verified — insert / read-back / update-quantity / delete,
+  `stock_item_id` null.
+- **Latest backup:** `.local\backups\20260720-220633\` (+ `backup-manifest.json`).
+- **Bulk imports still require application-side deduplication** (dedupe incoming
+  recipes by name against the existing set before inserting).
+- **PostgREST is not one transaction across recipe + ingredient inserts** — the
+  recipe insert and its ingredient inserts are separate requests; a failure after
+  the recipe insert can leave a recipe with no ingredients. Clean up or retry.
 
 ## 4. Application structure
 
