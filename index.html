@@ -83,6 +83,7 @@
   .status-msg.error { color: #b3261e; }
   .small { font-size: 11.5px; color: #8a8578; }
   .conn-status { font-size: 11.5px; color: #8a8578; margin-bottom: 10px; }
+  .conn-status:empty { display: none; }
   .conn-status.ok::before { content: "● "; color: #2e7d32; }
   .conn-status.bad::before { content: "● "; color: #b3261e; }
   .readiness-bar { height: 6px; border-radius: 4px; background: #f0ede4; overflow: hidden; margin: 6px 0 8px; }
@@ -112,26 +113,92 @@
   .grocery-item.checked .item-name { text-decoration: line-through; }
   .grocery-empty { text-align: center; padding: 40px 20px; color: #8a8578; }
   .grocery-empty .big { font-size: 28px; margin-bottom: 8px; }
+
+/* ===== Collapsed-card grid ===== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(max(300px, calc(100%/3 - 10px)), 1fr));
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .card-grid { grid-template-columns: 1fr; }
+}
+.card-grid .card { margin-bottom: 0; }
+.card.collapsible { padding: 0; overflow: hidden; }
+.card.collapsible .card-details { display: none; padding: 0 14px 14px; }
+.card.collapsible.expanded .card-details { display: block; }
+
+button.card-face {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  width: 100%; padding: 12px 14px; margin: 0;
+  background: transparent; border: 0; cursor: pointer;
+  font: inherit; color: inherit; text-align: left;
+}
+button.card-face:focus-visible {
+  outline: 3px solid #b35c1e; outline-offset: -3px; border-radius: 10px;
+}
+.card-title { font-weight: 700; font-size: 14.5px; }
+.chev {
+  margin-left: auto; width: 8px; height: 8px; flex: 0 0 auto;
+  border-right: 2px solid #8a8578; border-bottom: 2px solid #8a8578;
+  transform: rotate(45deg); transition: transform 0.15s ease;
+}
+.card.expanded .chev { transform: rotate(-135deg); }
+@media (prefers-reduced-motion: reduce) {
+  .chev { transition: none; }
+}
+
+/* Span-based readiness bar inside the face button (explicit block display
+   so phrasing-content conversion cannot collapse it) */
+.card-face .readiness-bar {
+  display: block; flex: 1 1 100%; height: 6px;
+  border-radius: 4px; background: #f0ede4; overflow: hidden; margin: 2px 0 0;
+}
+.card-face .readiness-fill { display: block; height: 100%; background: #2e7d32; }
+.card-face .readiness-label { flex: 1 1 100%; font-size: 12px; color: #8a8578; }
+
+/* Grocery cards: control (checkbox/button) sits beside the face, outside it */
+.grocery-card-row { display: flex; align-items: center; }
+.grocery-card-row > input[type="checkbox"] { margin: 0 0 0 12px; flex: 0 0 auto; }
+.grocery-card-row > .ghost { margin: 0 0 0 12px; flex: 0 0 auto; }
+.grocery-card-row > button.card-face { flex: 1 1 auto; width: auto; }
+.grocery-section > .card-grid { margin-top: 6px; }
+
+/* Recipes tab: cards styled like a handwritten recipe index card */
+#recipe-list .card.collapsible {
+  border: 1px solid #d9cfa6;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(90,70,25,0.16);
+  background-color: #fffdf3;
+  background-image:
+    linear-gradient(to right, transparent 30px, #e7bcbc 30px, #e7bcbc 31px, transparent 31px),
+    repeating-linear-gradient(transparent, transparent 27px, #d3e3ec 27px, #d3e3ec 28px);
+  background-attachment: local;
+}
+#recipe-list .card.collapsible > .card-face,
+#recipe-list .card.collapsible > .card-details { padding-left: 40px; }
+#recipe-list .card.collapsible .card-title { font-size: 15px; }
 </style>
 </head>
 <body>
 
 <h1>GalleyQuest</h1>
-<p class="subtitle">Pantry &amp; meal tracker &middot; live on Supabase (vera-core)</p>
+<p class="subtitle">Pantry &amp; Meal Tracker</p>
 <p class="conn-status" id="conn-status">Connecting…</p>
 
 <div class="tabs">
-  <button class="tab-btn active" data-tab="stock">Stock</button>
-  <button class="tab-btn" data-tab="recipes">Recipes</button>
+  <button class="tab-btn active" data-tab="suggestions">Cook Now</button>
   <button class="tab-btn" data-tab="plan">Meal Plan</button>
+  <button class="tab-btn" data-tab="stock">Stock</button>
   <button class="tab-btn" data-tab="grocery">Grocery List</button>
-  <button class="tab-btn" data-tab="suggestions">Cook Now</button>
+  <button class="tab-btn" data-tab="recipes">Recipes</button>
 </div>
 
 <!-- STOCK PANEL -->
-<div class="panel active" id="panel-stock">
+<div class="panel" id="panel-stock">
   <div class="toolbar">
-    <input type="text" id="stock-search" placeholder="Search items...">
+    <input type="text" id="stock-search" placeholder="Search items…">
     <select id="stock-filter-category"><option value="">All sections</option></select>
     <select id="stock-filter-status"><option value="">All statuses</option></select>
     <div class="seg-group">
@@ -177,7 +244,7 @@
 <div class="panel" id="panel-grocery">
   <p class="small">Everything needed for the week shown in Meal Plan: ingredients you don't have enough of, plus anything else in Stock that's running low, plus whatever you add below.</p>
   <div class="add-item-form">
-    <input type="text" id="extra-item-name" placeholder="Add something else to this week's list...">
+    <input type="text" id="extra-item-name" placeholder="Add something else to this week's list…">
     <input type="text" id="extra-item-notes" placeholder="Notes (optional)" style="max-width:200px">
     <button class="primary" id="btn-add-extra">+ Add</button>
   </div>
@@ -186,7 +253,7 @@
 </div>
 
 <!-- SUGGESTIONS PANEL -->
-<div class="panel" id="panel-suggestions">
+<div class="panel active" id="panel-suggestions">
   <p class="small">Ranks your recipes by how many of their tracked ingredients are currently marked OK in Stock. Untracked ingredients can't be checked automatically.</p>
   <div class="toolbar">
     <label class="toggle-row"><input type="checkbox" id="sugg-ready-only" style="width:auto"> Only show fully stocked (tracked ingredients)</label>
@@ -238,6 +305,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
+<script src="ui-cards.js"></script>
 <script>
 const SUPABASE_URL = window.SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
@@ -453,27 +521,47 @@ function renderRecipes() {
   const themeFilter = document.getElementById('recipe-filter-theme').value;
   const list = recipes.filter(r => !themeFilter || r.theme === themeFilter);
   const container = document.getElementById('recipe-list');
+  container.classList.add('card-grid');
   if (!list.length) { container.innerHTML = '<div class="empty">No recipes yet.</div>'; return; }
+  const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
   container.innerHTML = list.map(r => {
-    const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
     const ingHtml = (r.ingredients || []).map(ing => {
       const s = ing.stock_item_id ? stockById[ing.stock_item_id] : null;
-      const badge = s ? `<span class="badge badge-${s.status}">${s.status}</span>` : `<span class="small">not tracked</span>`;
+      const st = s ? safeStatus(s.status) : null;   // runtime allowlist
+      const badge = st ? `<span class="badge badge-${st}">${st}</span>`
+        : (s ? `<span class="small">${escHtml(s.status || '')}</span>` : `<span class="small">not tracked</span>`);
       return `<li>${escHtml(ing.ingredient_name)}${ing.quantity ? ' — ' + escHtml(ing.quantity) : ''} ${badge}</li>`;
     }).join('');
+    const readiness = computeReadiness(r, stockById);
+    const faceBadge = readiness.tracked === 0
+      ? '<span class="small">untracked</span>'
+      : (readiness.ok === readiness.tracked
+        ? `<span class="badge badge-OK">${readiness.ok}/${readiness.tracked}</span>`
+        : `<span class="badge badge-LOW">${readiness.ok}/${readiness.tracked}</span>`);
+    const detailsId = `recipes-card-details-${r.id}`;
     return `
-      <div class="card">
-        <h3>${escHtml(r.name)} ${r.theme ? `<span class="theme-tag">${r.theme}</span>` : ''}</h3>
-        ${r.instructions ? `<div class="card-meta">${escHtml(r.instructions)}</div>` : ''}
-        ${ingHtml ? `<ul class="ing-list">${ingHtml}</ul>` : '<p class="small">No ingredients listed.</p>'}
-        ${r.notes ? `<p class="small">${escHtml(r.notes)}</p>` : ''}
-        <div class="card-actions">
-          <button class="ghost" onclick="editRecipe('${r.id}')">Edit</button>
-          <button class="ghost danger" onclick="deleteRecipe('${r.id}')">Delete</button>
+      <div class="card collapsible" data-card-id="${escAttr(r.id)}">
+        <button type="button" class="card-face" aria-expanded="false" aria-controls="${escAttr(detailsId)}">
+          <span class="card-title">${escHtml(r.name)}</span>
+          ${r.theme ? `<span class="theme-tag">${escHtml(r.theme)}</span>` : ''}
+          ${faceBadge}
+          <span class="chev" aria-hidden="true"></span>
+        </button>
+        <div class="card-details" id="${escAttr(detailsId)}">
+          ${r.instructions ? `<div class="card-meta">${escHtml(r.instructions)}</div>` : ''}
+          ${ingHtml ? `<ul class="ing-list">${ingHtml}</ul>` : '<p class="small">No ingredients listed.</p>'}
+          ${r.notes ? `<p class="small">${escHtml(r.notes)}</p>` : ''}
+          <div class="card-actions">
+            <button class="ghost" data-action="edit" data-id="${escAttr(r.id)}">Edit</button>
+            <button class="ghost danger" data-action="delete" data-id="${escAttr(r.id)}">Delete</button>
+          </div>
         </div>
       </div>
     `;
   }).join('');
+  wireCardGrid('recipe-list', 'recipes');
+  wireCardActions('recipe-list', { edit: id => editRecipe(id), delete: id => deleteRecipe(id) });
+  applyCardState('recipe-list', 'recipes');
 }
 
 let editingRecipeId = null;
@@ -766,6 +854,27 @@ function renderGroceryDom() {
   const activeCount = activeSectionItems.length + activeUntracked.length + extras.length;
   const dismissedCount = dismissedSectionItems.length + dismissedUntracked.length;
 
+  // Grocery card helper: face button (name+badge) toggles details; the
+  // dismiss checkbox / action buttons are SIBLINGS of the face, never inside
+  // it. Canonical keys feed state, data-card-id, and the injective hex
+  // details id.
+  const groceryCard = (key, name, badgeHtml, detailsHtml, controlHtml) => {
+    const detailsId = `grocery-card-details-${hexId(key)}`;
+    return `<div class="card collapsible grocery-card" data-card-id="${escAttr(key)}">
+      <div class="grocery-card-row">
+        ${controlHtml}
+        <button type="button" class="card-face" aria-expanded="false" aria-controls="${escAttr(detailsId)}">
+          <span class="card-title">${escHtml(name)}</span>
+          ${badgeHtml}
+          <span class="chev" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div class="card-details" id="${escAttr(detailsId)}">${detailsHtml}</div>
+    </div>`;
+  };
+  const dismissBox = (key, name) =>
+    `<input type="checkbox" data-action="dismiss" data-key="${escAttr(key)}" aria-label="${escAttr('Dismiss ' + name)}">`;
+
   let html = '';
 
   if (!activeCount) {
@@ -776,39 +885,40 @@ function renderGroceryDom() {
       if (!items.length) return;
       html += `<div class="grocery-section">
         <div class="grocery-section-header"><span class="sec-icon">${sec.icon}</span><h4>${sec.label}</h4><span class="count">${items.length}</span></div>
-        ${items.map(it => `<div class="grocery-item">
-            <input type="checkbox" onchange="dismissGroceryItem('${it.key}')">
-            <div class="item-main">
-              <div class="item-name">${escHtml(it.name)}</div>
-              <div class="item-meta"><span class="badge badge-${it.status}">${it.status}</span> ${it.reasons.length ? escHtml('needed for ' + it.reasons.join(', ')) : ''}</div>
-            </div>
-          </div>`).join('')}
+        <div class="card-grid">
+        ${items.map(it => groceryCard(
+          it.key, it.name,
+          safeStatus(it.status) ? `<span class="badge badge-${safeStatus(it.status)}">${safeStatus(it.status)}</span>` : `<span class="small">${escHtml(it.status || '')}</span>`,
+          it.reasons.length ? `<div class="item-meta">${escHtml('needed for ' + it.reasons.join(', '))}</div>` : '<p class="small">No linked recipes this week.</p>',
+          dismissBox(it.key, it.name)
+        )).join('')}
+        </div>
       </div>`;
     });
 
     if (activeUntracked.length) {
       html += `<div class="grocery-section">
         <div class="grocery-section-header"><span class="sec-icon">❔</span><h4>Not tracked in Stock</h4><span class="count">${activeUntracked.length}</span></div>
-        ${activeUntracked.map(it => `<div class="grocery-item">
-            <input type="checkbox" onchange="dismissGroceryItem('${it.key}')">
-            <div class="item-main">
-              <div class="item-name">${escHtml(it.name)}${it.quantity ? ' — ' + escHtml(it.quantity) : ''}</div>
-              <div class="item-meta">${it.reasons.length ? escHtml('needed for ' + it.reasons.join(', ')) : ''}</div>
-            </div>
-          </div>`).join('')}
+        <div class="card-grid">
+        ${activeUntracked.map(it => groceryCard(
+          it.key, it.name + (it.quantity ? ' — ' + it.quantity : ''), '',
+          it.reasons.length ? `<div class="item-meta">${escHtml('needed for ' + it.reasons.join(', '))}</div>` : '<p class="small">No linked recipes this week.</p>',
+          dismissBox(it.key, it.name)
+        )).join('')}
+        </div>
       </div>`;
     }
 
     if (extras.length) {
       html += `<div class="grocery-section">
         <div class="grocery-section-header"><span class="sec-icon">➕</span><h4>Added by you</h4><span class="count">${extras.length}</span></div>
-        ${extras.map(it => `<div class="grocery-item">
-            <div class="item-main">
-              <div class="item-name">${escHtml(it.name)}</div>
-              ${it.notes ? `<div class="item-meta">${escHtml(it.notes)}</div>` : ''}
-            </div>
-            <button class="ghost danger" onclick="deleteGroceryExtra('${it.id}')">Remove</button>
-          </div>`).join('')}
+        <div class="card-grid">
+        ${extras.map(it => groceryCard(
+          'extra:' + it.id, it.name, '',
+          it.notes ? `<div class="item-meta">${escHtml(it.notes)}</div>` : '<p class="small">No notes.</p>',
+          `<button class="ghost danger" data-action="delete-extra" data-id="${escAttr(it.id)}">Remove</button>`
+        )).join('')}
+        </div>
       </div>`;
     }
   }
@@ -817,14 +927,20 @@ function renderGroceryDom() {
     const allDismissed = [...dismissedSectionItems, ...dismissedUntracked];
     html += `<div class="grocery-section">
       <div class="grocery-section-header"><span class="sec-icon">✓</span><h4>Removed this week</h4><span class="count">${dismissedCount}</span></div>
-      ${allDismissed.map(it => `<div class="grocery-item checked">
-          <div class="item-main"><div class="item-name">${escHtml(it.name)}</div></div>
-          <button class="ghost" onclick="restoreGroceryItem('${it.key}')">Restore</button>
-        </div>`).join('')}
+      <div class="card-grid">
+      ${allDismissed.map(it => groceryCard(
+        it.key, it.name, '<span class="small">dismissed</span>',
+        '<p class="small">Dismissed for this week.</p>',
+        `<button class="ghost" data-action="restore" data-key="${escAttr(it.key)}">Restore</button>`
+      )).join('')}
+      </div>
     </div>`;
   }
 
   container.innerHTML = html;
+  wireCardGrid('grocery-content', 'grocery');
+  wireGroceryActions('grocery-content');
+  applyCardState('grocery-content', 'grocery');
 }
 
 // ================= COOK NOW (stock-based suggestions) =================
@@ -872,26 +988,37 @@ function renderSuggestions() {
     return;
   }
 
+  container.classList.add('card-grid');
   container.innerHTML = rows.map(({ recipe: r, readiness }) => {
     const pct = readiness.score === null ? 0 : Math.round(readiness.score * 100);
     const label = readiness.tracked > 0
       ? `${readiness.ok} of ${readiness.tracked} tracked ingredients in stock`
       : 'No tracked ingredients — link ingredients to stock items to see readiness';
     const missingHtml = readiness.missing.map(m => {
-      const badge = m.status
-        ? `<span class="badge badge-${m.status}">${m.status}</span>`
-        : '<span class="small">not tracked</span>';
+      const st = safeStatus(m.status);   // runtime allowlist
+      const badge = st
+        ? `<span class="badge badge-${st}">${st}</span>`
+        : (m.status ? `<span class="small">${escHtml(m.status)}</span>` : '<span class="small">not tracked</span>');
       return `<li>${escHtml(m.name)} ${badge}</li>`;
     }).join('');
+    const detailsId = `suggestions-card-details-${r.id}`;
     return `
-      <div class="card">
-        <h3>${escHtml(r.name)} ${r.theme ? `<span class="theme-tag">${r.theme}</span>` : ''}</h3>
-        <div class="readiness-bar"><div class="readiness-fill" style="width:${pct}%"></div></div>
-        <div class="readiness-label">${label}</div>
-        ${missingHtml ? `<ul class="missing-list">${missingHtml}</ul>` : '<p class="small">Everything tracked is in stock.</p>'}
+      <div class="card collapsible" data-card-id="${escAttr(r.id)}">
+        <button type="button" class="card-face" aria-expanded="false" aria-controls="${escAttr(detailsId)}">
+          <span class="card-title">${escHtml(r.name)}</span>
+          ${r.theme ? `<span class="theme-tag">${escHtml(r.theme)}</span>` : ''}
+          <span class="readiness-bar"><span class="readiness-fill" style="width:${pct}%"></span></span>
+          <span class="readiness-label">${escHtml(label)}</span>
+          <span class="chev" aria-hidden="true"></span>
+        </button>
+        <div class="card-details" id="${escAttr(detailsId)}">
+          ${missingHtml ? `<ul class="missing-list">${missingHtml}</ul>` : '<p class="small">Everything tracked is in stock.</p>'}
+        </div>
       </div>
     `;
   }).join('');
+  wireCardGrid('suggestions-list', 'suggestions');
+  applyCardState('suggestions-list', 'suggestions');
 }
 
 // ================= modal helpers =================
@@ -913,8 +1040,8 @@ async function init() {
   try {
     const { error } = await sb.from('recipes').select('id', { count: 'exact', head: true });
     if (error) throw error;
-    connEl.textContent = 'Connected to Supabase (vera-core)';
-    connEl.className = 'conn-status ok';
+    connEl.textContent = '';
+    connEl.className = 'conn-status';
   } catch (e) {
     connEl.textContent = 'Connection failed: ' + e.message;
     connEl.className = 'conn-status bad';
@@ -924,6 +1051,7 @@ async function init() {
   await loadStock();
   await loadRecipes();
   await loadPlan();
+  renderSuggestions();
 }
 init();
 </script>
