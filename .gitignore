@@ -1,2 +1,6 @@
 config.js
 versions/
+
+# Local-only consolidation area: household data, DB snapshots, credentials,
+# and the runnable offline harness. Never commit.
+.local/

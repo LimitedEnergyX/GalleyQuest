@@ -15,3 +15,10 @@ Supabase (Postgres), served by a tiny dependency-free Node static file server.
 4. `node server.js` (serves on port 8000).
 
 `config.js` is git-ignored — never commit real credentials to this repo.
+
+## Maintainers / operations
+
+Full operational handoff — database and connection details, the offline
+development harness, data procedures, and the PANTRY → GalleyQuest
+consolidation history — is in
+[`docs/OPERATIONAL_HANDOFF.md`](docs/OPERATIONAL_HANDOFF.md).
