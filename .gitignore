@@ -13,3 +13,6 @@ __pycache__/
 .claude/
 .netlify/
 null
+
+# Secrets kept locally — NEVER commit (DB password, etc.).
+private.txt

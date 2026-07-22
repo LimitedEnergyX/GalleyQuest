@@ -4,25 +4,47 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GalleyQuest</title>
+<link rel="icon" type="image/png" href="docs/Images/app-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root { color-scheme: light; }
+  :root {
+    color-scheme: light;
+    /* GalleyQuest brand palette (from docs/Images/brand-guide.png) */
+    --gq-navy: #0B1F3A;       /* Deep Space Navy  */
+    --gq-blue: #145DA0;       /* Mission Blue     */
+    --gq-blue-dark: #0e457c;  /* Mission Blue, pressed/hover */
+    --gq-electric: #2DAEFF;   /* Electric Blue    */
+    --gq-white: #F4F8FB;      /* Star White       */
+    --gq-silver: #BFC9D4;     /* Orbital Silver   */
+    --gq-graphite: #394856;   /* Graphite         */
+    --gq-herb: #67B66A;       /* Fresh Herb Accent */
+  }
   * { box-sizing: border-box; }
   body {
     margin: 0; padding: 20px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     background: #faf9f7; color: #2b2924; font-size: 14px;
     /* Desktop base scale so the app reads comfortably at browser 100% (no manual zoom). Tune this one number. */
     zoom: 1.3;
   }
-  h1 { font-size: 19px; margin: 0 0 4px; }
-  .subtitle { color: #8a8578; font-size: 12.5px; margin: 0 0 16px; }
+  /* --- Brand header --- */
+  .app-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .app-header .brand-logo { width: 44px; height: 44px; border-radius: 11px; flex: 0 0 auto;
+    box-shadow: 0 2px 8px rgba(11,31,58,.22); }
+  .app-header .brand-text { flex: 1 1 auto; min-width: 0; }
+  h1 { font-family: 'Manrope', 'Inter', sans-serif; font-size: 22px; font-weight: 800;
+    letter-spacing: -.01em; color: var(--gq-navy); margin: 0; line-height: 1.1; }
+  .subtitle { color: #8a8578; font-size: 12.5px; margin: 2px 0 0; }
+  @media (max-width: 640px) { .app-header .brand-logo { width: 36px; height: 36px; } h1 { font-size: 18px; } }
   .tabs { display: flex; gap: 4px; border-bottom: 1px solid #e5e1d8; margin-bottom: 16px; flex-wrap: wrap; }
   .tab-btn {
     padding: 8px 14px; border: none; background: none; cursor: pointer;
     font-size: 13.5px; color: #8a8578; border-bottom: 2px solid transparent;
     margin-bottom: -1px; font-weight: 500;
   }
-  .tab-btn.active { color: #b5551e; border-bottom-color: #b5551e; }
+  .tab-btn.active { color: #145DA0; border-bottom-color: #145DA0; }
   .panel { display: none; }
   .panel.active { display: block; }
   /* Toolbars stick to the top of the viewport so filters + collapse-all stay reachable while scrolled. */
@@ -37,17 +59,17 @@
     font-family: inherit; font-size: 13px; padding: 6px 12px; border-radius: 6px;
     border: 1px solid #ddd8cc; background: #fff; cursor: pointer; color: #2b2924;
   }
-  button.primary { background: #b5551e; border-color: #b5551e; color: #fff; }
-  button.primary:hover { background: #9c4718; }
+  button.primary { background: #145DA0; border-color: #145DA0; color: #fff; }
+  button.primary:hover { background: #0e457c; }
   button.danger { color: #b3261e; border-color: #f0c9c5; }
   button.ghost { border-color: transparent; background: none; color: #8a8578; }
   button:hover { background: #f4f1ea; }
-  button.primary:hover { background: #9c4718; }
+  button.primary:hover { background: #0e457c; }
   button.seg { border-radius: 0; }
   .seg-group { display: inline-flex; border: 1px solid #ddd8cc; border-radius: 6px; overflow: hidden; }
   .seg-group button { border: none; border-radius: 0; margin: 0; }
   .seg-group button + button { border-left: 1px solid #ddd8cc; }
-  .seg-group button.active { background: #b5551e; color: #fff; }
+  .seg-group button.active { background: #145DA0; color: #fff; }
   table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e5e1d8; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f0ede4; font-size: 13px; vertical-align: top; }
   th { background: #f4f1ea; font-weight: 600; color: #6b6656; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; }
@@ -69,7 +91,7 @@
   #stock-table { overflow: visible; }
   #stock-table thead th { position: sticky; top: var(--stock-th-top, 90px); z-index: 10; background: #f4f1ea; box-shadow: 0 1px 0 #e5e1d8; }
   .staple-star { font-size: 12px; }
-  #stock-staples.active { background: #fff6ec; border-color: #b5551e; color: #8f4517; }
+  #stock-staples.active { background: #fff6ec; border-color: #145DA0; color: #0e457c; }
   #stock-lowuse.active { background: #fbeee2; border-color: #a05a2c; color: #8a4b12; }
   .col-uses { white-space: nowrap; font-size: 12px; }
   .use-staple { color: #8f7500; font-weight: 600; }
@@ -105,10 +127,10 @@
   .plan-add-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 12px; }
   .plan-add-row .pa-label { font-size: 12.5px; color: #6b6656; font-weight: 600; }
   .grocery-warning { background: #fbeee2; border: 1px solid #e9c9a8; color: #8a4b12; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; margin-bottom: 12px; }
-  .flag { color: #b5551e; font-size: 13px; }
+  .flag { color: #145DA0; font-size: 13px; }
   .cell-date { font: inherit; font-size: 12px; color: #4a463c; padding: 2px 4px; border: 1px solid transparent; border-radius: 5px; background: transparent; cursor: pointer; }
   .cell-date:hover { border-color: #d8d2c4; background: #fffdf8; }
-  .cell-date:focus { border-color: #b5551e; outline: none; background: #fff; }
+  .cell-date:focus { border-color: #145DA0; outline: none; background: #fff; }
   .card { background: #fff; border: 1px solid #e5e1d8; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
   .card h3 { margin: 0 0 4px; font-size: 14.5px; }
   .theme-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #eee7d8; color: #7a6a3a; font-weight: 600; }
@@ -139,17 +161,23 @@
   .week-nav strong { font-size: 14px; }
   .day-block { border-bottom: 1px solid #f0ede4; }
   .day-block:last-child { border-bottom: none; }
-  /* Header + every day row share ONE column template so columns stay uniform and
-     the Save button never shifts when a readiness badge appears/disappears. */
-  .plan-head, .day-row { display: grid; grid-template-columns: 92px 128px minmax(170px, 1.5fr) minmax(115px, 1fr) minmax(115px, 1fr) 84px 64px; gap: 8px; align-items: center; }
-  .day-row { padding: 8px; }
+  /* Column header + every meal row share ONE template so columns stay aligned. */
+  .plan-head, .meal-row { display: grid; grid-template-columns: 104px 118px minmax(155px, 1.5fr) minmax(110px, 1fr) minmax(110px, 1fr) 84px 58px 28px; gap: 8px; align-items: center; }
+  .meal-row { padding: 6px 8px; }
   .plan-head { padding: 9px 8px 7px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: #8a8578; font-weight: 700; background: #faf8f3; border-bottom: 1px solid #ece8df; }
-  .day-label { font-weight: 600; font-size: 12.5px; align-self: center; }
-  .plan-chips { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  /* Day = group header (like the Stock aisle bands); meals stack beneath it. */
+  .day-head { display: flex; align-items: baseline; gap: 10px; padding: 8px 8px 4px; background: #f7f4ee; }
+  .day-name { font-weight: 700; font-size: 13.5px; }
+  .day-count { font-size: 11.5px; color: #8a8578; }
+  .day-count.muted { font-style: italic; }
+  .add-meal-row { padding: 2px 8px 10px; }
+  .add-meal { font-size: 12px; color: #145DA0; padding: 3px 8px; }
+  .add-meal:hover { background: #fff6ec; }
+  .m-del { padding: 2px 6px; color: #b3261e; font-size: 13px; }
+  .meal-ing { padding: 0 8px 12px 112px; }
   .plan-readiness { font-size: 12px; padding: 4px 10px; border-radius: 20px; border: none; cursor: pointer; font-weight: 600; white-space: nowrap; }
   .plan-readiness.ready { background: #e3f2e1; color: #2e7d32; }
   .plan-readiness.short { background: #fbe1df; color: #b3261e; }
-  .day-ingredients { padding: 0 8px 12px 118px; }
   .plan-summary { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
   .plan-summary-text { font-weight: 600; font-size: 13px; }
   .grocery-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -159,10 +187,10 @@
   .grocery-row .card-title { font-weight: 600; font-size: 13.5px; }
   .gr-spacer { flex: 1; }
   /* Prominent "next step" callouts — deliberately stand out from the rest. */
-  .grocery-workflow, .stock-import { background: #fff6ec; border: 1px solid #f0c9a0; border-left: 5px solid #b5551e; border-radius: 10px; padding: 14px 16px; margin-bottom: 18px; }
+  .grocery-workflow, .stock-import { background: #fff6ec; border: 1px solid #f0c9a0; border-left: 5px solid #145DA0; border-radius: 10px; padding: 14px 16px; margin-bottom: 18px; }
   .stock-import textarea { width: 100%; box-sizing: border-box; font-family: monospace; font-size: 12.5px; margin: 6px 0 8px; }
   .wf-status { font-size: 12.5px; color: #8a6a4a; margin-bottom: 8px; }
-  .wf-head, .ns-head { font-weight: 700; font-size: 15px; color: #8f4517; margin-bottom: 6px; }
+  .wf-head, .ns-head { font-weight: 700; font-size: 15px; color: #0e457c; margin-bottom: 6px; }
   .ns-body { font-size: 13.5px; }
   .ns-body p { margin: 6px 0; }
   .wf-opt { font-size: 13.5px; margin: 7px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -171,8 +199,8 @@
   .copy-icon:hover { opacity: 1; }
   /* Floating grocery-cart shortcut, top-right of every tab. */
   .cart-jump { position: fixed; top: 14px; right: 16px; z-index: 50; background: #fff; border: 1px solid #e5e1d8; border-radius: 10px; font-size: 20px; line-height: 1; padding: 7px 11px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-  .cart-jump:hover { border-color: #b5551e; }
-  .cart-count { position: absolute; top: -7px; right: -7px; background: #b5551e; color: #fff; font-size: 10px; font-weight: 700; min-width: 17px; height: 17px; line-height: 17px; text-align: center; border-radius: 9px; padding: 0 4px; display: none; }
+  .cart-jump:hover { border-color: #145DA0; }
+  .cart-count { position: absolute; top: -7px; right: -7px; background: #145DA0; color: #fff; font-size: 10px; font-weight: 700; min-width: 17px; height: 17px; line-height: 17px; text-align: center; border-radius: 9px; padding: 0 4px; display: none; }
   .cart-count.show { display: inline-block; }
   .wf-say { background: #fff; border: 1px solid #ddd6c5; border-radius: 6px; padding: 1px 7px; font-style: italic; }
   .status-msg { font-size: 12px; padding: 6px 0; color: #8a8578; min-height: 18px; }
@@ -223,14 +251,62 @@
 @media (max-width: 640px) {
   body { padding: 12px; }
   .card-grid { grid-template-columns: 1fr; }
-  /* Meal Plan: stack each day's fields into one readable column */
-  .day-row { grid-template-columns: 1fr; gap: 6px; }
-  .day-ingredients { padding-left: 12px; }
-  /* Stock table: drop Uses (2) + Expires (5) on narrow screens to fit */
-  #stock-table th:nth-child(2), #stock-table td:nth-child(2),
-  #stock-table th:nth-child(5), #stock-table td:nth-child(5) { display: none; }
-  #stock-table { font-size: 12.5px; }
-  #stock-table th, #stock-table td { padding: 6px; }
+  /* Mobile: drop the Run Wizard button (it crowded the header + cart); it stays PC-only. */
+  .run-wizard { display: none; }
+  .app-header { padding-right: 68px; margin-bottom: 8px; }   /* clear the fixed cart button + trim vertical space */
+  /* Meal Plan: stack each meal into a labeled card. Column headers make no sense stacked. */
+  .plan-head { display: none; }
+  .meal-row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "slot   theme"
+      "recipe recipe"
+      "name   name"
+      "notes  notes"
+      "ready  ready"
+      "save   del";
+    gap: 6px 8px; padding: 10px; border-bottom: 1px solid #f0ede4;
+  }
+  .meal-row select, .meal-row input { width: 100%; }
+  .meal-row .m-slot { grid-area: slot; }
+  .meal-row .m-theme { grid-area: theme; }
+  .meal-row .m-recipe { grid-area: recipe; }
+  .meal-row .m-name { grid-area: name; }
+  .meal-row .m-notes { grid-area: notes; }
+  .meal-row .m-ready { grid-area: ready; justify-self: start; }
+  .meal-row .m-save { grid-area: save; width: 100%; }
+  .meal-row .m-del { grid-area: del; justify-self: end; }
+  .meal-ing { padding-left: 12px; }
+  /* Stock on mobile: compact top area. The toolbar is button-heavy — don't let it
+     stick and cover the list; you scroll past it once. */
+  #panel-stock .toolbar { position: static; gap: 6px; padding: 4px 0 8px; }
+  #panel-stock .toolbar button { padding: 5px 9px; font-size: 12px; }
+  #panel-stock .toolbar .seg-group button { padding: 5px 10px; }
+  .stock-legend { display: none; }
+  /* Lay each row out as a flexible card so the wide 7-col table never overflows/clips on a phone. */
+  #stock-table { display: block; border: none; background: transparent; }
+  #stock-table thead { display: none; }
+  #stock-table tbody { display: block; }
+  #stock-table tr { border: none; }
+  /* Aisle band */
+  #stock-table tr.section-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+    background: #f4f1ea; border-radius: 8px; margin: 10px 0 2px; padding: 8px 11px; }
+  #stock-table tr.section-row td { display: none; background: none; border: none; padding: 0; font-size: 12.5px; }
+  #stock-table tr.section-row td:nth-child(1) { display: block; flex: 1 1 auto; font-weight: 700; }
+  #stock-table tr.section-row td:nth-child(4) { display: block; }   /* X/Y in stock (+ low) */
+  #stock-table tr.section-row td:nth-child(5) { display: block; }   /* ⏰ expiring */
+  /* Item card: Name on its own line; status · qty on the left, Edit/Delete pushed right. */
+  #stock-table tr.stock-item-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+    padding: 8px 11px; border-bottom: 1px solid #f0ede4; }
+  #stock-table tr.stock-item-row td { display: block; border: none; padding: 0; font-size: 13px; }
+  #stock-table tr.stock-item-row td:nth-child(2),   /* uses */
+  #stock-table tr.stock-item-row td:nth-child(3),   /* aisle — redundant under the band */
+  #stock-table tr.stock-item-row td:nth-child(5) { display: none; }  /* expires */
+  #stock-table tr.stock-item-row td:nth-child(1) { flex: 1 1 100%; font-weight: 600; font-size: 14px; }
+  #stock-table tr.stock-item-row td:nth-child(4) { order: 1; }
+  #stock-table tr.stock-item-row td.col-qty { order: 2; color: #6b6656; white-space: nowrap; }
+  #stock-table tr.stock-item-row td:last-child { order: 3; margin-left: auto; white-space: nowrap; }
+  #stock-table tr.stock-item-row td:last-child button { padding: 3px 8px; font-size: 12px; }
   /* Let toolbar inputs use the full width, and wrap grocery-row buttons */
   .toolbar input[type="text"], .toolbar input[type="search"], .toolbar select { flex: 1 1 140px; min-width: 0; }
   .grocery-row { flex-wrap: wrap; }
@@ -301,13 +377,39 @@ button.card-face:focus-visible {
 .rate-stars-ro .on { color: #e6a817; }
 .rate-stars-ro .off { color: #cfcabc; }
 #recipe-list .card.collapsible .card-title { font-size: 15px; }
+/* --- Track A features: legend, copy-week, empty-cart art, onboarding --- */
+.stock-legend { font-size: 11.5px; color: #8a8578; padding: 4px 2px 8px; }
+.stock-legend .use-staple { color: #8f7500; font-weight: 600; }
+.stock-legend .use-low { color: #a05a2c; }
+.copy-week-ctl { font-size: 12px; color: #6b6656; display: inline-flex; align-items: center; gap: 6px; }
+.copy-week-ctl select { font-size: 12px; padding: 3px 6px; }
+.grocery-empty .empty-art { max-width: 340px; width: 70%; border-radius: 14px; box-shadow: 0 2px 12px rgba(11,31,58,.18); margin-bottom: 10px; }
+.modal.onboard { max-width: 460px; text-align: center; }
+.modal.onboard .onboard-art { width: auto; max-width: 100%; max-height: 220px; border-radius: 14px; box-shadow: 0 2px 14px rgba(11,31,58,.18); margin-bottom: 4px; }
+@media (max-height: 720px) { .modal.onboard .onboard-art { max-height: 150px; } .onboard-points { gap: 5px; } }
+.modal.onboard h2 { font-size: 20px; margin: 8px 0 4px; }
+.onboard-sub { color: #6b6656; font-size: 13.5px; margin: 0 0 12px; }
+.onboard-points { text-align: left; list-style: none; padding: 0; margin: 0 auto 12px; max-width: 400px; display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
+.onboard-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+/* Floating pill that sits just left of the cart-jump button (matched styling). */
+.run-wizard { position: fixed; top: 14px; right: 72px; z-index: 50; margin: 0;
+  font-size: 12.5px; font-weight: 600; padding: 8px 12px; border-radius: 10px;
+  background: #fff; border: 1px solid #e5e1d8; color: #0e457c;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08); cursor: pointer; }
+.run-wizard:hover { background: var(--gq-white); border-color: #145DA0; }
 </style>
 </head>
 <body>
 
 <button class="cart-jump" id="cart-jump" title="Go to Grocery Cart" aria-label="Go to Grocery Cart">🛒<span class="cart-count" id="cart-count"></span></button>
-<h1>GalleyQuest</h1>
-<p class="subtitle">Pantry &amp; Meal Tracker</p>
+<button class="run-wizard" id="btn-wizard" title="Open the setup wizard">🪄 Run Wizard</button>
+<header class="app-header">
+  <img src="docs/Images/app-icon.png" alt="GalleyQuest logo" class="brand-logo">
+  <div class="brand-text">
+    <h1>GalleyQuest</h1>
+    <p class="subtitle">Pantry &amp; Meal Tracker</p>
+  </div>
+</header>
 <p class="conn-status" id="conn-status">Connecting…</p>
 
 <div class="tabs">
@@ -332,6 +434,7 @@ button.card-face:focus-visible {
     <button type="button" class="ghost" id="stock-lowuse" title="Items used in 1 or fewer recipes">⚠ Low-use</button>
     <span style="flex:1"></span>
     <button class="ghost" id="btn-import-stock">🎤 Use Dispatch to update</button>
+    <button class="ghost" id="btn-stock-reconcile">🧾 Reconcile receipt</button>
     <button class="primary" id="btn-add-stock">+ Add item</button>
   </div>
   <div id="stock-import" class="stock-import" style="display:none">
@@ -346,7 +449,17 @@ button.card-face:focus-visible {
     </div>
     <div style="margin-top:10px"><button class="ghost" id="btn-cancel-import">Close</button></div>
   </div>
+  <div id="stock-recon-box" class="stock-import" style="display:none">
+    <div class="ns-head">🧾 Reconcile your receipt</div>
+    <div class="ns-body">
+      <p class="small">Paste (or type) what you bought — one item per line. Matches get marked <b>in stock</b>; anything new is <b>added</b> to your stock.</p>
+      <textarea id="stock-recon-text" rows="6" placeholder="milk&#10;eggs&#10;ground beef&#10;flour tortillas&#10;..."></textarea>
+      <button class="primary" id="btn-do-stock-recon">Reconcile</button>
+    </div>
+    <div style="margin-top:10px"><button class="ghost" id="btn-cancel-stock-recon">Cancel</button></div>
+  </div>
   <div class="status-msg" id="stock-status"></div>
+  <div class="stock-legend"><b>Uses</b> = how many recipes need it &nbsp;·&nbsp; <span class="use-staple">⭐ staple</span> (most-used) &nbsp;·&nbsp; <span class="use-low">⚠ rarely used</span> (in ≤1 recipe) &nbsp;·&nbsp; <b>＋</b> adds to cart</div>
   <table id="stock-table">
     <thead><tr><th>Name</th><th title="How many recipes use this — ⭐ staple, ⚠ rarely used">Uses</th><th title="Store aisle / department this item is grouped under">Aisle</th><th>Status</th><th title="Click a cell to set or change an expiration date">Expires</th><th>Qty</th><th></th></tr></thead>
     <tbody id="stock-tbody"></tbody>
@@ -375,12 +488,17 @@ button.card-face:focus-visible {
     <strong id="week-label"></strong>
     <button id="week-next">Next week &rarr;</button>
     <button id="week-today" class="ghost">This week</button>
+    <span style="flex:1"></span>
+    <span class="copy-week-ctl">📋 Copy this week to
+      <select id="copy-target"><option value="1">next week</option><option value="2">in 2 weeks</option><option value="3">in 3 weeks</option><option value="4">in 4 weeks</option></select>
+      <button class="ghost" id="btn-copy-week">Copy</button>
+    </span>
   </div>
   <div class="status-msg" id="plan-status"></div>
   <div class="plan-summary" id="plan-summary"></div>
   <div class="card" style="padding:0">
     <div class="plan-head">
-      <span>Day</span><span>Theme</span><span>Recipe</span><span>Meal name</span><span>Notes</span><span>Status</span><span></span>
+      <span>Slot</span><span>Theme</span><span>Recipe</span><span>Meal name</span><span>Notes</span><span>Status</span><span></span><span></span>
     </div>
     <div id="plan-days"></div>
   </div>
@@ -400,6 +518,19 @@ button.card-face:focus-visible {
     <button class="ghost" data-horizon="2">Next 2 weeks</button>
     <button class="ghost" data-horizon="3">3 weeks</button>
     <button class="ghost" data-horizon="all">All planned</button>
+  </div>
+  <div class="plan-add-row">
+    <span class="pa-label">🧾 Back from the store?</span>
+    <button class="ghost" id="btn-reconcile">Reconcile receipt</button>
+  </div>
+  <div id="recon-box" class="stock-import" style="display:none">
+    <div class="ns-head">🧾 Reconcile your receipt</div>
+    <div class="ns-body">
+      <p class="small">Paste (or type) what you actually bought — one item per line. Matched items get marked <b>in stock</b> and cleared from the cart.</p>
+      <textarea id="recon-text" rows="6" placeholder="milk&#10;eggs&#10;ground beef&#10;flour tortillas&#10;..."></textarea>
+      <button class="primary" id="btn-do-recon">Reconcile</button>
+    </div>
+    <div style="margin-top:10px"><button class="ghost" id="btn-cancel-recon">Cancel</button></div>
   </div>
   <div id="grocery-warning" class="grocery-warning" hidden></div>
   <div class="status-msg" id="grocery-status"></div>
@@ -422,6 +553,25 @@ button.card-face:focus-visible {
 </div>
 
 <!-- STOCK MODAL -->
+<!-- ONBOARDING (first run) -->
+<div class="modal-bg" id="onboard-modal">
+  <div class="modal onboard">
+    <img src="docs/Images/hero-portrait-light.png" alt="GalleyQuest — a Limited Energy project" class="onboard-art" loading="eager" decoding="async">
+    <h2>Welcome to GalleyQuest 🍽️</h2>
+    <p class="onboard-sub">Your pantry, recipes, and meal plan in one place.</p>
+    <ul class="onboard-points">
+      <li><b>🥫 Stock</b> — mark what you have, and the app knows what you can cook</li>
+      <li><b>🔥 Cook Now</b> — meals you can make right now, ranked by what's on hand</li>
+      <li><b>📅 Meal Plan → 🛒 Cart</b> — plan the week, then let it build your grocery list</li>
+    </ul>
+    <p class="small">Best first step: stock your pantry so everything else lights up.</p>
+    <div class="onboard-actions">
+      <button class="primary" data-onboard="stock">🥫 Set up my pantry</button>
+      <button class="ghost" data-onboard="dismiss">Explore on my own</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="stock-modal">
   <div class="modal">
     <h2 id="stock-modal-title">Add stock item</h2>
@@ -432,7 +582,7 @@ button.card-face:focus-visible {
         <option value="OK">OK</option><option value="LOW">LOW</option><option value="OUT">OUT</option>
       </select></div>
       <div><label>Expiration date</label><input type="date" id="f-stock-expiration"></div>
-      <div class="full"><label>Notes</label><textarea id="f-stock-notes" rows="2"></textarea></div>
+      <div><label>Qty</label><input type="text" id="f-stock-qty" placeholder="e.g. 1 gal, 8 oz, 2"></div>
     </div>
     <div class="modal-footer">
       <button class="ghost" id="stock-modal-cancel">Cancel</button>
@@ -492,6 +642,9 @@ const SECTION_BY_KEY = Object.fromEntries(SECTIONS.map(s => [s.key, s]));
 const THEMES = ['Mexican','Thai','Asian','Crock Pot','Grab Night','Invention','Open'];
 // Canonical recipe cuisine families (keep in sync with the taxonomy pass).
 const CUISINES = ['American','Asian','British','Chinese','French','Italian','Japanese','Mediterranean','Mexican','Southwest','Tex-Mex','Thai'];
+// Meal-plan time slots. Free text in the DB, so more can be added (e.g. a dining hall's 5/day).
+const MEAL_SLOTS = ['Breakfast','Lunch','Dinner'];
+const SLOT_ORDER = { Breakfast: 0, Lunch: 1, Dinner: 2 };
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
 let stockItems = [];
@@ -566,6 +719,21 @@ function restoreLastTab() {
     }
   } catch (e) { /* ignore */ }
 }
+
+// First-run onboarding — shown once, tracked in localStorage.
+function maybeShowOnboarding() {
+  try { if (localStorage.getItem('gq-onboarded')) return; } catch (e) { return; }
+  openModal('onboard-modal');
+}
+document.getElementById('onboard-modal').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-onboard]');
+  if (!b) return;
+  try { localStorage.setItem('gq-onboarded', '1'); } catch (e) { /* ignore */ }
+  closeModal('onboard-modal');
+  if (b.dataset.onboard === 'stock') document.querySelector('.tab-btn[data-tab="stock"]').click();
+});
+// Re-open the wizard anytime from the header button.
+document.getElementById('btn-wizard').addEventListener('click', () => openModal('onboard-modal'));
 
 // ================= STOCK =================
 function populateSelect(sel, values, labels) {
@@ -673,18 +841,40 @@ function expiringCount(items) {
 // A sensible general shopping quantity for an item (eggs -> dozen, milk -> gallon…).
 function generalQty(item) {
   const n = (item.name || '').toLowerCase();
+  // Order matters — most specific compounds first so "sour cream" beats "cream", etc.
   const map = [
+    // dairy & eggs
     [/\begg(s)?\b/, '1 dozen'], [/\bmilk\b/, '1 gallon'], [/\bbutter\b/, '1 lb (4 sticks)'],
-    [/\bflour\b/, '5 lb bag'], [/\bsugar\b/, '4 lb bag'], [/\brice\b/, '2 lb bag'],
-    [/\bbacon\b/, '1 lb'], [/tortilla/, '1 pack'], [/\bcheese\b/, '8 oz'], [/\byogurt\b/, '32 oz'],
-    [/\bbread\b/, '1 loaf'], [/pasta|spaghetti|penne|noodle|macaroni/, '1 box'],
-    [/\bbeans?\b/, '1 can'], [/\bsalsa\b/, '1 jar'], [/\boil\b/, '1 bottle'],
+    [/sour cream/, '16 oz'], [/\bcream\b/, '1 pint'], [/\bcheese\b/, '8 oz'], [/\byogurt\b/, '32 oz'],
+    // meat & seafood
+    [/ground (beef|turkey|pork|chicken)/, '1 lb'], [/\bbacon\b|\bsausage\b/, '1 lb'],
+    [/\bchicken\b/, '2 lb'], [/\bsteak\b|\bbeef\b|\bpork\b|\bshrimp\b|\bsalmon\b|\bfish\b|\btofu\b/, '1 lb'],
+    // bakery / grains
+    [/tortilla/, '1 pack'], [/\bbread\b|baguette|\bbun\b|\broll\b|muffin/, '1 loaf'],
+    [/pasta|spaghetti|penne|noodle|macaroni|lasagne|fettuccine|linguine/, '1 box'],
+    [/\brice\b/, '2 lb bag'], [/\boat|granola/, '1 canister'],
+    // produce — per item (the part that was weakest)
+    [/\bonion/, '3'], [/\bgarlic/, '1 bulb'], [/\bpotato/, '5 lb bag'], [/\btomato/, '3'],
+    [/\bavocado/, '2'], [/lettuce|romaine|\bcabbage/, '1 head'], [/\bcarrot/, '1 lb bag'],
+    [/\bcelery/, '1 bunch'], [/broccoli|cauliflower/, '1 head'], [/spinach|\bkale\b|\bgreens\b/, '1 bag'],
+    [/bell pepper|poblano|jalapeno|\bchile\b/, '2'], [/\blime\b|\blemon\b/, '3'],
+    [/\bapple\b|\borange\b|\bpear\b|\bpeach/, '3'], [/\bbanana/, '1 bunch'],
+    [/berr(y|ies)|strawberr|blueberr|raspberr/, '1 pint'], [/mushroom/, '8 oz'],
+    [/cilantro|parsley|\bbasil\b|\bmint\b|\bherb/, '1 bunch'], [/\bginger\b/, '1 knob'], [/\bcorn\b/, '3 ears'],
+    // pantry / condiments / spices
+    [/\bflour\b/, '5 lb bag'], [/\bsugar\b/, '4 lb bag'], [/\bbeans?\b/, '1 can'],
+    [/\boil\b/, '1 bottle'], [/\bvinegar\b/, '1 bottle'], [/\bsalsa\b/, '1 jar'],
+    [/\bbroth\b|\bstock\b/, '32 oz'], [/sauce|paste|puree|ketchup|mustard|mayo|jam|jelly/, '1 jar'],
+    [/\bsalt\b|\bpepper\b|cumin|paprika|cinnamon|oregano|\bspice\b|seasoning|extract/, '1 container'],
   ];
   for (const [re, q] of map) if (re.test(n)) return q;
   switch (item.category) {
     case 'meat_seafood': return '1 lb';
+    case 'produce': return '1';
     case 'dairy_eggs': return '1';
     case 'canned_goods': return '1 can';
+    case 'condiments_spices': return '1';
+    case 'bakery': return '1';
     case 'beverages': return '1';
     default: return '';
   }
@@ -880,7 +1070,7 @@ function openStockModal(item) {
   document.getElementById('f-stock-category').value = item ? item.category : CATEGORIES[0];
   document.getElementById('f-stock-status').value = item ? item.status : 'OK';
   document.getElementById('f-stock-expiration').value = item && item.expiration_date ? item.expiration_date : '';
-  document.getElementById('f-stock-notes').value = item ? (item.notes || '') : '';
+  document.getElementById('f-stock-qty').value = item ? (item.notes || '') : '';
   openModal('stock-modal');
 }
 window.editStock = (id) => openStockModal(stockItems.find(s => s.id === id));
@@ -900,7 +1090,7 @@ document.getElementById('stock-modal-save').addEventListener('click', async () =
   const category = document.getElementById('f-stock-category').value;
   const status = document.getElementById('f-stock-status').value;
   const expiration = document.getElementById('f-stock-expiration').value || null;
-  const notes = document.getElementById('f-stock-notes').value.trim() || null;
+  const notes = document.getElementById('f-stock-qty').value.trim() || null;
   try {
     if (editingStockId) {
       const { error } = await sb.from('stock_items').update({
@@ -1256,50 +1446,97 @@ function planIngredientsHtml(recipe) {
   return `<ul class="missing-list">${lis}</ul>${addBtn}`;
 }
 
+// One meal = one row (its own id). New/unsaved rows have data-id="".
+function mealRowHtml(day, m) {
+  const sel = m.recipe_id ? recipes.find(r => r.id === m.recipe_id) : null;
+  const slotOpts = MEAL_SLOTS.map(s => `<option value="${escAttr(s)}" ${m.slot === s ? 'selected' : ''}>${escHtml(s)}</option>`).join('')
+    + ((m.slot && !MEAL_SLOTS.includes(m.slot)) ? `<option value="${escAttr(m.slot)}" selected>${escHtml(m.slot)}</option>` : '');
+  const themeOpts = ['<option value="">—</option>'].concat(
+    THEMES.map(t => `<option value="${t}" ${m.theme === t ? 'selected' : ''}>${t}</option>`)).join('');
+  return `
+    <div class="meal-row" data-id="${escAttr(m.id || '')}" data-day="${escAttr(day)}">
+      <select class="m-slot">${slotOpts}</select>
+      <select class="m-theme">${themeOpts}</select>
+      <select class="m-recipe">${groupedRecipeOptions(m.recipe_id, m.theme)}</select>
+      <input type="text" class="m-name" placeholder="Meal name (optional)" value="${escHtml(m.meal_name || '')}">
+      <input type="text" class="m-notes" placeholder="Notes" value="${escHtml(m.notes || '')}">
+      <span class="m-ready">${planReadinessBadge(sel)}</span>
+      <button class="primary m-save">Save</button>
+      <button class="ghost danger m-del" title="Remove this meal">✕</button>
+    </div>
+    <div class="meal-ing" hidden>${planIngredientsHtml(sel)}</div>`;
+}
+
 function renderPlan() {
-  const byDay = Object.fromEntries(planRows.map(r => [r.day_of_week, r]));
+  const byDay = {};
+  DAYS.forEach(d => byDay[d] = []);
+  planRows.forEach(r => { if (byDay[r.day_of_week]) byDay[r.day_of_week].push(r); });
   const container = document.getElementById('plan-days');
   container.innerHTML = DAYS.map(day => {
-    const row = byDay[day] || {};
-    const sel = row.recipe_id ? recipes.find(r => r.id === row.recipe_id) : null;
-    const themeOptions = ['<option value="">—</option>'].concat(
-      THEMES.map(t => `<option value="${t}" ${row.theme === t ? 'selected' : ''}>${t}</option>`)
-    ).join('');
+    const meals = byDay[day].slice().sort((a, b) =>
+      ((SLOT_ORDER[a.slot] ?? 9) - (SLOT_ORDER[b.slot] ?? 9)) || (a.created_at || '').localeCompare(b.created_at || ''));
+    const count = meals.length;
     return `
-      <div class="day-block">
-        <div class="day-row" data-day="${day}">
-          <div class="day-label">${day}<div class="plan-chips">${planChips(sel)}</div></div>
-          <select class="plan-theme">${themeOptions}</select>
-          <select class="plan-recipe">${groupedRecipeOptions(row.recipe_id, row.theme)}</select>
-          <input type="text" class="plan-mealname" placeholder="Meal name (optional)" value="${escHtml(row.meal_name || '')}">
-          <input type="text" class="plan-notes" placeholder="Notes" value="${escHtml(row.notes || '')}">
-          <span class="plan-ready-cell">${planReadinessBadge(sel)}</span>
-          <button class="primary plan-save">Save</button>
-        </div>
-        <div class="day-ingredients" hidden>${planIngredientsHtml(sel)}</div>
-      </div>
-    `;
+      <div class="day-block" data-day="${escAttr(day)}">
+        <div class="day-head"><span class="day-name">${day}</span>${count
+          ? `<span class="day-count">${count} meal${count === 1 ? '' : 's'}</span>`
+          : '<span class="day-count muted">no meals planned</span>'}</div>
+        ${meals.map(m => mealRowHtml(day, m)).join('')}
+        <div class="add-meal-row"><button type="button" class="ghost add-meal" data-day="${escAttr(day)}">+ Add meal</button></div>
+      </div>`;
   }).join('');
-  container.querySelectorAll('.plan-save').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const rowEl = e.target.closest('.day-row');
-      const day = rowEl.dataset.day;
-      const theme = rowEl.querySelector('.plan-theme').value || null;
-      const recipeId = rowEl.querySelector('.plan-recipe').value || null;
-      const mealName = rowEl.querySelector('.plan-mealname').value.trim() || null;
-      const notes = rowEl.querySelector('.plan-notes').value.trim() || null;
-      try {
-        const { error } = await sb.from('meal_plan').upsert({
-          week_start_date: fmtDate(currentWeekStart), day_of_week: day, theme,
-          recipe_id: recipeId, meal_name: mealName, notes, updated_at: new Date().toISOString()
-        }, { onConflict: 'week_start_date,day_of_week' });
-        if (error) throw error;
-        setStatus('plan-status', day + ' saved.');
-        await loadPlan();
-      } catch (err) { setStatus('plan-status', 'Save failed: ' + err.message, true); }
-    });
-  });
   renderPlanSummary();
+}
+
+function addMealRow(day) {
+  const block = document.querySelector(`.day-block[data-day="${day}"]`);
+  if (!block) return;
+  const used = [...block.querySelectorAll('.m-slot')].map(s => s.value);
+  const nextSlot = MEAL_SLOTS.find(s => !used.includes(s)) || 'Dinner';
+  block.querySelector('.add-meal-row').insertAdjacentHTML('beforebegin',
+    mealRowHtml(day, { id: '', slot: nextSlot, theme: null, recipe_id: null, meal_name: '', notes: '' }));
+}
+
+async function saveMeal(rowEl) {
+  const day = rowEl.dataset.day;
+  const id = rowEl.dataset.id || null;
+  const slot = rowEl.querySelector('.m-slot').value || null;
+  const theme = rowEl.querySelector('.m-theme').value || null;
+  const recipeId = rowEl.querySelector('.m-recipe').value || null;
+  const mealName = rowEl.querySelector('.m-name').value.trim() || null;
+  const notes = rowEl.querySelector('.m-notes').value.trim() || null;
+  try {
+    if (id) {
+      const { error } = await sb.from('meal_plan').update({
+        slot, theme, recipe_id: recipeId, meal_name: mealName, notes, updated_at: new Date().toISOString()
+      }).eq('id', id);
+      if (error) throw error;
+    } else {
+      const { error } = await sb.from('meal_plan').insert({
+        week_start_date: fmtDate(currentWeekStart), day_of_week: day, slot,
+        theme, recipe_id: recipeId, meal_name: mealName, notes
+      });
+      if (error) throw error;
+    }
+    setStatus('plan-status', `${day} ${slot || 'meal'} saved.`);
+    await loadPlan();
+  } catch (err) { setStatus('plan-status', 'Save failed: ' + err.message, true); }
+}
+
+async function deleteMeal(rowEl) {
+  const id = rowEl.dataset.id || null;
+  if (!id) { // unsaved new row — just drop it from the DOM
+    const ing = rowEl.nextElementSibling;
+    if (ing && ing.classList.contains('meal-ing')) ing.remove();
+    rowEl.remove();
+    return;
+  }
+  try {
+    const { error } = await sb.from('meal_plan').delete().eq('id', id);
+    if (error) throw error;
+    setStatus('plan-status', 'Meal removed.');
+    await loadPlan();
+  } catch (err) { setStatus('plan-status', 'Delete failed: ' + err.message, true); }
 }
 
 function renderPlanSummary() {
@@ -1338,28 +1575,33 @@ async function addWeekMissingToGrocery() {
 // Delegated interactions on the plan grid (attached once; container persists).
 document.getElementById('plan-days').addEventListener('click', (e) => {
   const rb = e.target.closest('.plan-readiness');
-  if (rb) { const ing = rb.closest('.day-block').querySelector('.day-ingredients'); ing.hidden = !ing.hidden; return; }
+  if (rb) { const ing = rb.closest('.meal-row').nextElementSibling; if (ing && ing.classList.contains('meal-ing')) ing.hidden = !ing.hidden; return; }
   const ag = e.target.closest('[data-action="add-grocery"]');
   if (ag) { window.addMissingToGrocery(ag.getAttribute('data-id')); return; }
+  const am = e.target.closest('.add-meal');
+  if (am) { addMealRow(am.getAttribute('data-day')); return; }
+  const del = e.target.closest('.m-del');
+  if (del) { deleteMeal(del.closest('.meal-row')); return; }
+  const sv = e.target.closest('.m-save');
+  if (sv) { saveMeal(sv.closest('.meal-row')); return; }
 });
 document.getElementById('plan-days').addEventListener('change', (e) => {
-  const blk = e.target.closest('.day-block');
+  const row = e.target.closest('.meal-row');
+  if (!row) return;
   // Theme changed -> cross-reference the recipe list to that theme's cuisines.
-  if (e.target.classList.contains('plan-theme')) {
-    const recSel = blk.querySelector('.plan-recipe');
+  if (e.target.classList.contains('m-theme')) {
+    const recSel = row.querySelector('.m-recipe');
     const cur = recSel.value;
     recSel.innerHTML = groupedRecipeOptions(cur || null, e.target.value);
     recSel.value = cur;
     return;
   }
-  if (!e.target.classList.contains('plan-recipe')) return;
+  if (!e.target.classList.contains('m-recipe')) return;
   const recipe = e.target.value ? recipes.find(r => r.id === e.target.value) : null;
-  if (recipe && recipe.theme) blk.querySelector('.plan-theme').value = recipe.theme;
-  blk.querySelector('.plan-chips').innerHTML = planChips(recipe);
-  blk.querySelector('.plan-ready-cell').innerHTML = planReadinessBadge(recipe);
-  const ing = blk.querySelector('.day-ingredients');
-  ing.innerHTML = planIngredientsHtml(recipe);
-  ing.hidden = true;
+  if (recipe && recipe.theme) row.querySelector('.m-theme').value = recipe.theme;
+  row.querySelector('.m-ready').innerHTML = planReadinessBadge(recipe);
+  const ing = row.nextElementSibling;
+  if (ing && ing.classList.contains('meal-ing')) { ing.innerHTML = planIngredientsHtml(recipe); ing.hidden = true; }
 });
 
 async function gotoWeek(delta) {
@@ -1371,6 +1613,92 @@ async function gotoWeek(delta) {
 document.getElementById('week-prev').addEventListener('click', () => gotoWeek(-7));
 document.getElementById('week-next').addEventListener('click', () => gotoWeek(7));
 document.getElementById('week-today').addEventListener('click', () => gotoWeek(0));
+
+// Copy this week's meals to a future week (recurring rules are a future add).
+async function copyWeek() {
+  if (!planRows.length) { setStatus('plan-status', 'No meals this week to copy.', true); return; }
+  const weeks = parseInt(document.getElementById('copy-target').value) || 1;
+  const targetStart = addDays(currentWeekStart, weeks * 7);
+  const targetStr = fmtDate(targetStart);
+  try {
+    const { data: existing } = await sb.from('meal_plan').select('id').eq('week_start_date', targetStr);
+    if (existing && existing.length &&
+        !confirm(`The week of ${fmtDateLabel(targetStart)} already has ${existing.length} meal(s). Add this week's ${planRows.length} on top?`)) return;
+    const rows = planRows.map(m => ({
+      week_start_date: targetStr, day_of_week: m.day_of_week, slot: m.slot,
+      theme: m.theme, recipe_id: m.recipe_id, meal_name: m.meal_name, notes: m.notes
+    }));
+    const { error } = await sb.from('meal_plan').insert(rows);
+    if (error) throw error;
+    setStatus('plan-status', `Copied ${rows.length} meal${rows.length === 1 ? '' : 's'} to the week of ${fmtDateLabel(targetStart)}.`);
+  } catch (e) { setStatus('plan-status', 'Copy failed: ' + e.message, true); }
+}
+document.getElementById('btn-copy-week').addEventListener('click', copyWeek);
+
+// Receipt reconciliation: mark what you actually bought as in-stock + clear from cart.
+async function reconcileReceipt() {
+  const lines = document.getElementById('recon-text').value.split('\n').map(l => l.trim()).filter(Boolean);
+  if (!lines.length) { setStatus('grocery-status', 'Paste your receipt items first.', true); return; }
+  const byNorm = {}; stockItems.forEach(s => { byNorm[normStockName(s.name)] = s; });
+  const cartByName = {}; groceryExtras.forEach(g => { cartByName[(g.item_name || '').toLowerCase()] = g; });
+  let marked = 0, cleared = 0; const unmatched = [];
+  for (const line of lines) {
+    const target = STOCK_SYNONYMS[line.toLowerCase()] || line;
+    const item = byNorm[normStockName(target)] || byNorm[normStockName(line)];
+    if (!item) { unmatched.push(line); continue; }
+    try {
+      await sb.from('stock_items').update({ status: 'OK', updated_at: new Date().toISOString() }).eq('id', item.id);
+      marked++;
+      const cartRow = cartByName[item.name.toLowerCase()] || cartByName[line.toLowerCase()];
+      if (cartRow) { await sb.from('grocery_extra_items').delete().eq('id', cartRow.id); cleared++; }
+    } catch (e) { unmatched.push(line + ' (error)'); }
+  }
+  await loadStock(); await renderGrocery(); if (recipes.length) renderSuggestions();
+  document.getElementById('recon-box').style.display = 'none';
+  document.getElementById('recon-text').value = '';
+  setStatus('grocery-status', `Reconciled: ${marked} marked in stock, ${cleared} cleared from cart` +
+    (unmatched.length ? `. Not matched: ${unmatched.join(', ')}` : '') + '.');
+}
+document.getElementById('btn-reconcile').addEventListener('click', () => {
+  const el = document.getElementById('recon-box');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('btn-cancel-recon').addEventListener('click', () => { document.getElementById('recon-box').style.display = 'none'; });
+document.getElementById('btn-do-recon').addEventListener('click', reconcileReceipt);
+
+// Stock-side receipt reconcile: mark bought items in stock, and ADD anything new to the stock list.
+async function reconcileStockReceipt() {
+  const lines = document.getElementById('stock-recon-text').value.split('\n').map(l => l.trim()).filter(Boolean);
+  if (!lines.length) { setStatus('stock-status', 'Paste your receipt items first.', true); return; }
+  const byNorm = {}; stockItems.forEach(s => { byNorm[normStockName(s.name)] = s; });
+  let marked = 0, added = 0, errs = 0; const addedNames = []; const seen = new Set();
+  for (const line of lines) {
+    const target = STOCK_SYNONYMS[line.toLowerCase()] || line;
+    const norm = normStockName(target);
+    if (seen.has(norm)) continue; seen.add(norm);
+    const item = byNorm[norm] || byNorm[normStockName(line)];
+    try {
+      if (item) {
+        await sb.from('stock_items').update({ status: 'OK', updated_at: new Date().toISOString() }).eq('id', item.id);
+        marked++;
+      } else {
+        await sb.from('stock_items').insert({ name: target, category: 'household_other', status: 'OK' });
+        added++; addedNames.push(target);
+      }
+    } catch (e) { errs++; }
+  }
+  await loadStock(); await refreshGroceryNames(); if (recipes.length) renderSuggestions();
+  document.getElementById('stock-recon-box').style.display = 'none';
+  document.getElementById('stock-recon-text').value = '';
+  setStatus('stock-status', `Reconciled: ${marked} marked in stock` +
+    (added ? `, ${added} added (${addedNames.join(', ')})` : '') + (errs ? `, ${errs} failed` : '') + '.');
+}
+document.getElementById('btn-stock-reconcile').addEventListener('click', () => {
+  const el = document.getElementById('stock-recon-box');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('btn-cancel-stock-recon').addEventListener('click', () => { document.getElementById('stock-recon-box').style.display = 'none'; });
+document.getElementById('btn-do-stock-recon').addEventListener('click', reconcileStockReceipt);
 
 // ================= GROCERY LIST =================
 async function loadGroceryExtras() {
@@ -1608,7 +1936,10 @@ function renderGroceryDom() {
   let html = groceryWorkflowHtml(counts, needCount, items.length);
 
   if (!items.length) {
-    html += `<div class="grocery-empty"><div class="big">🛒</div>Nothing on your list yet.<br>Add items from Cook Now, or pull in this week's meal needs above.</div>`;
+    html += `<div class="grocery-empty">
+      <img src="docs/Images/social-card-dark.png" alt="GalleyQuest galley chefs" class="empty-art" loading="lazy">
+      <div>Your cart's empty. Add items from <b>Cook Now</b>, tap <b>＋</b> in Stock, or pull in your planned meals above.</div>
+    </div>`;
   } else {
     SECTIONS.forEach(sec => {
       const secItems = items.filter(it => it.aisle === sec.key).sort((a, b) => a.name.localeCompare(b.name));
@@ -1889,6 +2220,7 @@ async function init() {
   await refreshGroceryNames();
   renderSuggestions();
   restoreLastTab();
+  maybeShowOnboarding();
 }
 init();
 </script>

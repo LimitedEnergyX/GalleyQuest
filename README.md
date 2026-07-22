@@ -1,3 +1,5 @@
+![GalleyQuest — A Limited Energy project](docs/Images/banner-ultrawide-dark.png)
+
 # 🍽️ GalleyQuest
 
 **A household pantry, recipe, and meal-planning app that answers the real daily question — _"what can I actually cook right now, and what do I need to buy?"_ — and then lets Claude do the shopping.**
@@ -168,14 +170,21 @@ Full operational details are in [`docs/OPERATIONAL_HANDOFF.md`](docs/OPERATIONAL
 
 Ideas on deck (not yet built):
 
-- **First-run onboarding** — guide a new user to mark what they have before the pantry looks empty.
-- **Multiple meals per day** in the planner (needs a small schema change to drop the one-meal-per-day constraint).
-- **Receipt reconciliation** — after a pickup, reconcile the actual receipt back into stock.
 - **Per-item store memory** — remember the exact H-E-B product chosen for each ingredient.
 - **Smarter general quantities** — refine the produce/bulk unit heuristics over time.
+- **Recurring meal schedules** — "every first week of the month" style repeats (copy-a-week already ships).
+
+_Recently shipped: first-run wizard, multiple meals per day (meal slots), receipt reconciliation (grocery **and** stock), copy-a-week, and a full brand refresh + mobile overhaul._
 
 ---
 
 ## Credits
 
 Forked from [`arentovey-lang/GalleyQuest`](https://github.com/arentovey-lang/GalleyQuest), which provided the original pantry/recipe/meal-plan foundation. This fork's enhancements — the efficiency lens, smart multi-week grocery, AI-native workflows, and UX overhaul — were built by [@LimitedEnergyX](https://github.com/LimitedEnergyX) in collaboration with Claude Code.
+
+---
+
+<p align="center">
+  <img src="docs/Images/hero-wide-dark.png" alt="GalleyQuest galley crew" width="720"><br>
+  <sub><b>GalleyQuest</b> — A Limited Energy project</sub>
+</p>
