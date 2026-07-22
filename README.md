@@ -1,59 +1,147 @@
 # 🍽️ GalleyQuest
 
-**A household pantry, recipe, and meal-planning app that tells you what you can cook right now — and shops for the rest.**
+**A household pantry, recipe, and meal-planning app that answers the real daily question — _"what can I actually cook right now, and what do I need to buy?"_ — and then lets Claude do the shopping.**
 
-GalleyQuest tracks what's in your pantry, what you can make with it, and turns your weekly meal plan into a smart grocery list. It's a dependency-free static frontend backed by Supabase (Postgres). No build step, no framework.
+Track what's in your pantry, see every meal you can make from it, plan the week, and turn that plan into a smart, waste-aware grocery cart. It's a dependency-free static frontend backed by Supabase (Postgres) — no build step, no framework — with a pair of Claude workflows that capture your pantry by voice and fill your grocery cart for you.
 
-<!-- Replace with a real screenshot: docs/screenshots/cook-now.png -->
-![Cook Now](docs/screenshots/cook-now.png)
+![GalleyQuest — Cook Now](docs/screenshots/cook-now.png)
 
 ---
 
-## What it does
+## Contents
+
+- [What it is](#what-it-is)
+- [Where it started, and what this fork adds](#where-it-started-and-what-this-fork-adds)
+- [Feature tour](#feature-tour)
+- [🤖 Built for Claude](#-built-for-claude)
+- [Under the hood](#under-the-hood)
+- [The recipe-maintenance toolkit](#the-recipe-maintenance-toolkit)
+- [Quick start](#quick-start)
+- [Roadmap](#roadmap)
+- [Credits](#credits)
+
+---
+
+## What it is
+
+Most pantry apps are glorified lists. GalleyQuest is built around a different idea: your inventory should _do something for you_. Every screen is organized around a decision you actually make —
+
+- **"What can I cook tonight?"** → **Cook Now** ranks recipes by how ready they are from current stock.
+- **"What do I have?"** → **Stock** is your pantry, grouped by supermarket aisle, with usage and expiration insight.
+- **"What's the plan?"** → **Meal Plan** is a weekly grid that knows what each meal still needs.
+- **"What do I buy?"** → **Grocery Cart** is a real shopping list with a lifecycle, built from your plan — and shoppable by Claude.
+
+It also has a point of view about **waste**: it rates recipes by how *pantry-efficient* they are, flags ingredients that only ever serve one dish, understands interchangeable ingredients (have shortening, need lard? you're covered), and refuses to buy perishables weeks before you'll cook them.
+
+---
+
+## Where it started, and what this fork adds
+
+GalleyQuest began as a **small self-hosted pantry/recipe/meal-plan tracker** (forked from [`arentovey-lang/GalleyQuest`](https://github.com/arentovey-lang/GalleyQuest)). The base app provided the five-tab skeleton, the Supabase backing, and a starter set of ~28 recipes. It answered *"what's in the pantry?"* — but not *"so what should I do about it?"*
+
+**This fork turns it from an inventory list into a decision engine.** The major additions:
+
+| Area | What was added |
+|------|----------------|
+| **Scale & data quality** | Grew ~28 → **234 recipes** and **~505 stock items**; added a clean cuisine/category taxonomy (11 cuisine families, meal-time categories), consolidated 76 duplicate/variant ingredients, and normalized recipe names. |
+| **Intelligence** | Computed **efficiency ratings**, **AKA / interchangeable ingredients**, single-use ingredient flags, a staples view, and coverage analysis — readiness now understands substitutes and won't double-buy. |
+| **Smart grocery** | **Multi-week** cart building from the meal plan (this week → all planned), a **perishable expiration hold** so you don't buy milk three weeks early, an aisle-grouped list, and an on-list → ordered → picked-up lifecycle that **restocks the pantry** when you're done. |
+| **UX overhaul** | Consistent 3-row recipe cards, 1–5⭐ ratings, sticky toolbars + table headers, inline expiration date pickers, general-quantity suggestions, one-click add-to-cart, and desktop scaling that reads well at 100% zoom. |
+| **🤖 Claude-native** | Update your whole pantry **by voice** through Claude, and have Claude **fill your H-E-B cart** from the shopping list. |
+| **Tooling** | A credential-free `recipe-maintenance` Python toolkit for backup, verification, consolidation, and coverage. |
+
+---
+
+## Feature tour
 
 ### 🔥 Cook Now
-See every recipe you can make from what's currently in stock, ranked by readiness. Each card shows a readiness bar, a plain-English summary ("You have everything" / "3 items to buy"), and the full ingredient list with per-item status. Filter by category or cuisine, or flip on **Show Fully Stocked** to see only what needs zero shopping. One click adds anything missing to the cart.
+See every recipe you can make from current stock, ranked by readiness. Each card has a readiness bar, a plain-English summary (*"You have everything"* / *"3 items to buy"*), category + cuisine chips, and — when expanded — the full ingredient list with per-item OK/OUT status. Filter by category or cuisine, or flip **Show Fully Stocked** to see only zero-shopping meals. One click sends anything missing to the cart.
 
 ![Cook Now — expanded ingredient list](docs/screenshots/cook-now-detail.png)
 
 ### 🥫 Stock
-Your pantry, grouped into the 12 aisles of a real supermarket. Each aisle header shows an at-a-glance count (`7/74 in stock · 1 low`) and an ⏰ expiring flag. Every item has:
-- **Status** — OK / LOW / OUT
-- **Inline expiration date** — click the cell, pick a date, done
-- **Uses** — how many recipes rely on it (⭐ staple, ⚠ rarely used), with one-click **Staples** / **Low-use** filters
-- **General quantity** — sensible shopping units (eggs → dozen, milk → gallon, meat → lb)
-- **＋ to cart** — add straight to your grocery list
-
-Update your whole pantry by **voice** through Claude Dispatch — just talk, no typing.
+Your pantry, grouped into the 12 aisles of a real supermarket. Each aisle header shows an at-a-glance roll-up (`7/74 in stock · 1 low`) and an ⏰ expiring flag.
 
 ![Stock — aisle overview](docs/screenshots/stock-overview.png)
+
+Expand an aisle and every item gives you:
+- **Status** — OK / LOW / OUT
+- **Uses** — how many recipes rely on it (⭐ staple, ⚠ rarely used), with one-click **Staples** / **Low-use** filters
+- **Expires** — an inline date picker; click the cell and set it
+- **Qty** — a sensible general shopping unit (eggs → dozen, milk → gallon, meat → lb)
+- **＋** — add straight to the grocery cart
 
 ![Stock — expanded aisle with Uses, quantities, and add-to-cart](docs/screenshots/stock.png)
 
 ### 📖 Recipes
-200+ recipes in a clean, consistent card layout. Every card shows the same three rows: **name + on-hand ratio**, **category · cuisine**, and **ratings**. Rate what you've tried (1–5 ⭐), and see each recipe's computed **efficiency rating** — a 🌿 score based on how many ingredients it needs and how many are rarely used elsewhere. Filter by category, cuisine, search, or "🌿 Efficient" to favor lean, pantry-friendly meals.
+200+ recipes in a consistent, scannable card layout. Every card shows the same three rows — **name + on-hand ratio**, **category · cuisine**, and **ratings**. Rate what you've tried (1–5⭐), and read each recipe's computed **efficiency** rating: a 🌿 score based on how many ingredients it needs and how many are rarely used elsewhere. Filter by category, cuisine, search, or **🌿 Efficient** to favor lean, pantry-friendly meals.
 
 ![Recipes](docs/screenshots/recipes.png)
 
 ### 📅 Meal Plan
-A weekly grid — pick a theme and a recipe per day. Themes cross-reference cuisines (choose "Mexican" and the recipe list narrows to Tex-Mex / Southwest), each day shows live readiness ("✓ ready" / "3 to buy"), and one button pulls the whole week's missing ingredients into the cart.
+A weekly grid — pick a theme and a recipe per day. Themes **cross-reference** cuisines (choose *Mexican* and the recipe list narrows to Tex-Mex / Southwest), each day shows live readiness (*"✓ ready"* / *"3 to buy"*), and one button pulls the week's missing ingredients into the cart.
 
 ![Meal Plan](docs/screenshots/meal-plan.png)
 
 ### 🛒 Grocery Cart
-A real shopping list with a lifecycle: **on list → ordered → picked up**. Add missing ingredients from your planned meals across a horizon you choose — **this week, next 2 weeks, 3 weeks, or all planned**. Perishables needed too far out are **held back with a warning** so you don't buy milk three weeks early. When you mark items picked up, the pantry restocks itself.
+A real shopping list with a lifecycle: **on list → ordered → picked up**. Pull in missing ingredients from your planned meals across a horizon you choose — **this week, next 2 weeks, 3 weeks, or all planned** — and perishables needed too far out are **held back with a warning** so nothing spoils before you cook it. When you mark items picked up, the pantry restocks itself. And at the top: a one-line handoff to let **Claude place the order for you.**
 
-![Grocery Cart](docs/screenshots/grocery-cart.png)
+![Grocery Cart — with the Claude ordering handoff](docs/screenshots/grocery-cart.png)
 
 ---
 
-## Highlights
+## 🤖 Built for Claude
 
-- **Efficiency-first pantry** — a usage-based star rating on every recipe, single-use ingredient flags, and a staples view help keep a lean pantry and cut waste.
-- **AKA / interchangeable ingredients** — call for lard, have shortening? You're covered. Substitutes count toward readiness and never get double-bought.
-- **Expiration-aware shopping** — buy non-perishables ahead for several weeks; perishables get held for a closer trip.
-- **Zero build, zero deps** — a single `index.html` + `ui-cards.js`, served by a ~60-line Node static server.
-- **No schema gymnastics** — cuisine/category/tags/ratings ride in a recipe's notes field, so the app runs against a plain Supabase project with anon-role CRUD.
+GalleyQuest is designed to be driven by an AI assistant, not just clicked. Two Claude workflows remove the two most tedious chores — *keeping the pantry current* and *placing the order*.
+
+### 🎤 Update your pantry by voice
+Standing at the fridge with your hands full is exactly when you don't want to type. On your phone, open **Claude → Dispatch** (connected to the machine hosting GalleyQuest) and say *"Update my pantry,"* then just talk:
+
+> *"We have a half gallon of milk, a dozen eggs, two pounds of ground beef, out of flour, low on olive oil."*
+
+Claude parses that into structured stock updates and writes them straight to the database — no forms, no copy-paste.
+
+### 🛒 Let Claude fill your cart
+When the shopping list is ready, the Grocery Cart shows a handoff: in **Claude Desktop**, say *"Launch GalleyQuest."* Claude reads your list, opens **your** Chrome, and fills your **H-E-B Copperas Cove** curbside cart — starting from *Buy It Again* for staples, then searching for the rest, and marking each item ordered as it goes.
+
+It deliberately **stops before checkout** — you handle sign-in, any CAPTCHA, and payment. Claude never touches your credentials or places the final order; it just does the 20 minutes of clicking.
+
+_(The workflows live as Claude "skills"; the browser automation uses your real, logged-in Chrome so you can watch it work.)_
+
+---
+
+## Under the hood
+
+| Layer | Choice |
+|-------|--------|
+| **Frontend** | A single `index.html` + `ui-cards.js`, vanilla JS, no framework, no build |
+| **Backend** | Supabase (Postgres) via PostgREST, anon-role CRUD |
+| **Server** | Dependency-free Node static file server (`server.js`) |
+| **Taxonomy / ratings** | Stored as lines in `recipes.notes` (`Cuisine:` / `Category:` / `Tags:` / `Rating:`) — **no schema changes required** |
+
+A few design decisions worth calling out:
+
+- **No-DDL taxonomy.** Rather than alter the schema, cuisine/category/tags/ratings ride inside each recipe's notes field and are parsed at runtime. The whole app runs against a plain Supabase project with only anon-role CRUD.
+- **Efficiency rating.** `penalty = ingredient count + 2 × single-use ingredients + used-in-2 ingredients` (excluding always-on-hand staples), bucketed into 1–5 🌿 stars. Few common ingredients → 5; many with rare ones → 1.
+- **AKA substitutes.** Curated interchangeable groups (e.g. `Lard ↔ Shortening`, `Corn starch ↔ Potato starch`) — if any group member is in stock, the recipe counts it as covered and it never gets added to the cart.
+- **Perishable holds.** Aisle-based windows (produce/bakery ≤ 1 week ahead, meat/dairy ≤ 2 weeks) decide whether a future meal's ingredient is bought now or held for a closer trip.
+
+---
+
+## The recipe-maintenance toolkit
+
+`tools/recipe-maintenance/` is a small, **credential-free** Python toolkit (reads `config.js` at runtime, standard library only) for data upkeep:
+
+| Script | Purpose |
+|--------|---------|
+| `backup_db.py` | Read-only export of all tables + a manifest |
+| `verify_recipe_database.py` | Integrity checks (no orphans, every ingredient has a quantity, …) |
+| `consolidate_ingredients.py` | Merge duplicate/variant stock items into canonical ones |
+| `coverage.py` | How many recipes are makeable from a set, and the best next additions |
+| `link_stock.py` / `stock_from_recipes.py` | Link recipe ingredients to pantry items and build out stock |
+| `stock_cli.py` / `grocery_cli.py` | Voice-pantry ingest and grocery-list operations |
+
+Run any of them with `python <script>.py` from `tools/recipe-maintenance/`.
 
 ---
 
@@ -62,43 +150,32 @@ A real shopping list with a lifecycle: **on list → ordered → picked up**. Ad
 No `npm install` — there are no dependencies.
 
 1. **Create a Supabase project** with these tables: `stock_items`, `recipes`, `recipe_ingredients`, `meal_plan`, `grocery_extra_items`, `grocery_dismissed_items`.
-2. **Configure credentials:** copy `config.example.js` to `config.js` and fill in your project URL + anon key.
+2. **Configure credentials** — copy `config.example.js` to `config.js` and fill in your project URL + anon key:
    ```bash
-   cp config.example.js config.js
-   # then edit config.js
+   cp config.example.js config.js   # then edit config.js
    ```
    `config.js` is git-ignored — **never commit real credentials.**
 3. **Run it:**
    ```bash
-   node server.js      # serves on http://localhost:8000
+   node server.js                   # serves on http://localhost:8000
    ```
 
----
-
-## Architecture
-
-| Layer | Choice |
-|-------|--------|
-| Frontend | Static `index.html` + `ui-cards.js`, vanilla JS, no framework |
-| Backend | Supabase (Postgres) via PostgREST, anon-role CRUD |
-| Server | Dependency-free Node static file server (`server.js`) |
-| Taxonomy/ratings | Stored as lines in `recipes.notes` (`Cuisine:` / `Category:` / `Tags:` / `Rating:`) — no schema changes needed |
-
-## Recipe-maintenance toolkit
-
-`tools/recipe-maintenance/` holds a small, credential-free Python toolkit (reads `config.js` at runtime, standard library only) for data upkeep:
-
-- `backup_db.py` — read-only export of all tables + a manifest
-- `verify_recipe_database.py` — integrity checks (no orphans, every ingredient has a quantity, etc.)
-- `consolidate_ingredients.py` — merge duplicate/variant stock items into canonical ones
-- `coverage.py` — how many recipes are makeable from a set of ingredients, and the best next additions
-- `link_stock.py` / `stock_from_recipes.py` — link recipe ingredients to pantry items and build out stock
-- `stock_cli.py` / `grocery_cli.py` — voice-pantry ingest and grocery list operations
-
-Run any of them with `python <script>.py` from `tools/recipe-maintenance/`.
+Full operational details are in [`docs/OPERATIONAL_HANDOFF.md`](docs/OPERATIONAL_HANDOFF.md).
 
 ---
 
-## Operations
+## Roadmap
 
-Full operational details — database/connection specifics, data procedures, and history — live in [`docs/OPERATIONAL_HANDOFF.md`](docs/OPERATIONAL_HANDOFF.md).
+Ideas on deck (not yet built):
+
+- **First-run onboarding** — guide a new user to mark what they have before the pantry looks empty.
+- **Multiple meals per day** in the planner (needs a small schema change to drop the one-meal-per-day constraint).
+- **Receipt reconciliation** — after a pickup, reconcile the actual receipt back into stock.
+- **Per-item store memory** — remember the exact H-E-B product chosen for each ingredient.
+- **Smarter general quantities** — refine the produce/bulk unit heuristics over time.
+
+---
+
+## Credits
+
+Forked from [`arentovey-lang/GalleyQuest`](https://github.com/arentovey-lang/GalleyQuest), which provided the original pantry/recipe/meal-plan foundation. This fork's enhancements — the efficiency lens, smart multi-week grocery, AI-native workflows, and UX overhaul — were built by [@LimitedEnergyX](https://github.com/LimitedEnergyX) in collaboration with Claude Code.
