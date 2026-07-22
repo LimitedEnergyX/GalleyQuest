@@ -51,10 +51,24 @@ def _req(method, path, body=None, headers=None):
 
 
 def get(table, params="select=*"):
-    st, hd, body = _req("GET", "/rest/v1/%s?%s" % (table, params))
-    if st >= 400:
-        raise RuntimeError("GET %s -> %s: %s" % (table, st, body))
-    return body or []
+    # PostgREST caps responses (commonly 1000 rows); paginate unless the caller
+    # supplied an explicit limit.
+    if "limit=" in params:
+        st, hd, body = _req("GET", "/rest/v1/%s?%s" % (table, params))
+        if st >= 400:
+            raise RuntimeError("GET %s -> %s: %s" % (table, st, body))
+        return body or []
+    rows, page, offset = [], 1000, 0
+    while True:
+        p = "%s&limit=%d&offset=%d" % (params, page, offset)
+        st, hd, body = _req("GET", "/rest/v1/%s?%s" % (table, p))
+        if st >= 400:
+            raise RuntimeError("GET %s -> %s: %s" % (table, st, body))
+        batch = body or []
+        rows.extend(batch)
+        if len(batch) < page:
+            return rows
+        offset += page
 
 
 def count(table, filt=""):

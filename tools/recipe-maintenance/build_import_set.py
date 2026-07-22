@@ -13,7 +13,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _db
 
 THEMES = {"Mexican", "Thai", "Asian", "Crock Pot", "Grab Night", "Invention", "Open"}
-CUISINE_THEME = {"Tex-Mex": "Mexican", "Southwest": "Mexican", "Mediterranean": "Open"}
+CUISINE_THEME = {"Tex-Mex": "Mexican", "Southwest": "Mexican", "Mediterranean": "Open",
+                 "American": "Open", "Italian": "Open"}
 
 
 def norm_name(n):
@@ -35,6 +36,18 @@ def expand_supplemental(tup):
         "theme": CUISINE_THEME[cuisine],
         "instructions": "\n".join(steps),
         "notes": "Cuisine: %s\nSource: household culinary reconstruction" % cuisine,
+        "ingredients": [{"name": nm, "quantity": q} for (q, nm) in ings],
+    }
+
+
+def expand_rich(tup):
+    name, cuisine, category, tags, ings, steps = tup
+    return {
+        "name": name,
+        "theme": CUISINE_THEME[cuisine],
+        "instructions": "\n".join(steps),
+        "notes": "Cuisine: %s\nCategory: %s\nTags: %s\nSource: household culinary reconstruction" % (
+            cuisine, category, tags),
         "ingredients": [{"name": nm, "quantity": q} for (q, nm) in ings],
     }
 
@@ -68,6 +81,16 @@ def main():
     med_sel = [r for r in med if norm_name(r["name"]) in med_keep]
 
     candidates = med_sel + texmex_db + [expand_supplemental(t) for t in supp.SUPPLEMENTAL]
+
+    rich_path = os.path.join(_db.ROOT, ".local", "recipe-maintenance", "supplemental_american_italian.py")
+    if os.path.exists(rich_path):
+        rich = load_local("supplemental_american_italian.py")
+        candidates += [expand_rich(t) for t in rich.SUPPLEMENTAL_RICH]
+
+    staples_path = os.path.join(_db.ROOT, ".local", "recipe-maintenance", "supplemental_staples.py")
+    if os.path.exists(staples_path):
+        st = load_local("supplemental_staples.py")
+        candidates += [expand_rich(t) for t in st.SUPPLEMENTAL_STAPLES]
 
     existing = set(norm_name(r["name"]) for r in _db.get("recipes", "select=name"))
     final, skipped, seen = [], [], set()

@@ -82,6 +82,12 @@
     });
   };
 
+  // Collapse every card in a tab (clears persisted expansion).
+  window.collapseAll = function (containerId, tabKey) {
+    saveState(tabKey, new Set());
+    window.applyCardState(containerId, tabKey);
+  };
+
   // Grocery actions: change handles ONLY dismiss checkboxes; click handles
   // ONLY button-like restore / delete-extra. Independent marker from toggle
   // wiring; no user-derived text ever enters a JS string literal.
@@ -102,6 +108,13 @@
       var action = el.getAttribute('data-action');
       if (action === 'restore') window.restoreGroceryItem(el.getAttribute('data-key'));
       else if (action === 'delete-extra') window.deleteGroceryExtra(el.getAttribute('data-id'));
+      else if (action === 'advance') window.advanceGroceryItem(el.getAttribute('data-id'));
+      else if (action === 'picked-up') window.pickedUpGroceryItem(el.getAttribute('data-id'));
+      else if (action === 'picked-up-all') window.pickedUpAllGrocery();
+      else if (action === 'all-ordered') window.markAllOrdered();
+      else if (action === 'all-pending') window.markAllPending();
+      else if (action === 'copy-prompt') window.copyOrderPrompt();
+      else if (action === 'add-needs') window.addWeekNeeds();
     });
   };
 })();
@@ -114,6 +127,15 @@
   // enforcement). Returns null for anything outside the fixed set.
   window.safeStatus = function (s) {
     return (s === 'OK' || s === 'LOW' || s === 'OUT') ? s : null;
+  };
+
+  // Status badge HTML. OK renders as a green checkmark; LOW/OUT keep their
+  // labels. Returns '' for anything outside the allowlist (caller handles it).
+  window.statusBadge = function (status) {
+    var st = window.safeStatus(status);
+    if (st === 'OK') return '<span class="badge badge-OK" title="In stock" aria-label="In stock">✓</span>';
+    if (st) return '<span class="badge badge-' + st + '">' + st + '</span>';
+    return '';
   };
 
   // Generic delegated card actions (same injection-safe pattern as grocery):

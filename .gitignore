@@ -8,3 +8,8 @@ versions/
 # Python bytecode caches from the recipe-maintenance toolkit.
 __pycache__/
 *.pyc
+
+# Local tooling / editor / deploy scratch — not part of the app.
+.claude/
+.netlify/
+null

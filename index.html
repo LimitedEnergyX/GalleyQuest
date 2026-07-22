@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GalleyQuest</title>
 <style>
   :root { color-scheme: light; }
@@ -10,6 +11,8 @@
     margin: 0; padding: 20px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     background: #faf9f7; color: #2b2924; font-size: 14px;
+    /* Desktop base scale so the app reads comfortably at browser 100% (no manual zoom). Tune this one number. */
+    zoom: 1.3;
   }
   h1 { font-size: 19px; margin: 0 0 4px; }
   .subtitle { color: #8a8578; font-size: 12.5px; margin: 0 0 16px; }
@@ -22,7 +25,9 @@
   .tab-btn.active { color: #b5551e; border-bottom-color: #b5551e; }
   .panel { display: none; }
   .panel.active { display: block; }
-  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  /* Toolbars stick to the top of the viewport so filters + collapse-all stay reachable while scrolled. */
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 20; background: #faf9f7; padding: 8px 52px 8px 0; border-bottom: 1px solid #eee7d8; }
   select, input[type=text], input[type=date], textarea {
     font-family: inherit; font-size: 13px; padding: 6px 8px;
     border: 1px solid #ddd8cc; border-radius: 6px; background: #fff; color: #2b2924;
@@ -47,38 +52,129 @@
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f0ede4; font-size: 13px; vertical-align: top; }
   th { background: #f4f1ea; font-weight: 600; color: #6b6656; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; }
   tr:last-child td { border-bottom: none; }
+  tr.section-row { cursor: pointer; }
   tr.section-row td { background: #f4f1ea; font-weight: 700; font-size: 12.5px; color: #6b6656; padding: 7px 10px; }
+  tr.section-row:hover td { background: #efeadd; }
+  .sec-chev { display: inline-block; width: 14px; color: #8a8578; }
+  .sec-count { color: #8a8578; font-weight: 500; }
+  .sec-stat { margin-left: 10px; font-weight: 500; font-size: 11.5px; color: #6b6656; }
+  .sec-stat b { font-weight: 700; color: #3a7a3a; }
+  .sec-stat.sec-low { color: #a05a2c; }
+  .sec-stat.sec-out { color: #b3261e; }
+  .sec-stat.sec-exp { color: #b3261e; font-weight: 600; }
+  /* Lock the Stock column headers below the sticky toolbar (Excel-style).
+     --stock-th-top is measured in JS to exactly match the toolbar height.
+     overflow:visible is REQUIRED — the global table{overflow:hidden} otherwise makes
+     the table its own clip context and the sticky thead never engages (scrolls away). */
+  #stock-table { overflow: visible; }
+  #stock-table thead th { position: sticky; top: var(--stock-th-top, 90px); z-index: 10; background: #f4f1ea; box-shadow: 0 1px 0 #e5e1d8; }
+  .staple-star { font-size: 12px; }
+  #stock-staples.active { background: #fff6ec; border-color: #b5551e; color: #8f4517; }
+  #stock-lowuse.active { background: #fbeee2; border-color: #a05a2c; color: #8a4b12; }
+  .col-uses { white-space: nowrap; font-size: 12px; }
+  .use-staple { color: #8f7500; font-weight: 600; }
+  .use-low { color: #a05a2c; }
+  .use-mid { color: #8a8578; }
+  .col-qty { white-space: nowrap; }
+  .qty-suggest { color: #a8a496; font-style: italic; }
+  .add-cart-btn { padding: 1px 8px; font-size: 15px; line-height: 1.2; color: #3a7a3a; font-weight: 700; }
+  .add-cart-btn:hover { background: #eef6ee; }
+  .qty-cart { margin-left: 8px; }
+  .on-cart { margin-left: 8px; opacity: .7; }
+  .oneoff-tag { font-size: 10px; color: #a05a2c; background: #fbeee2; border-radius: 8px; padding: 1px 6px; white-space: nowrap; }
+  .special-note { font-size: 12px; color: #a05a2c; margin: 5px 0; }
+  .special-note.efficient { color: #3a7a3a; }
+  #recipe-efficient.active { background: #eef6ee; border-color: #3a7a3a; color: #2e6a2e; }
+  .face-stars { color: #e6a817; font-size: 13px; letter-spacing: 1px; }
+  .eff-badge { font-size: 11px; padding: 1px 6px; border-radius: 8px; }
+  .eff-badge.high { background: #eef6ee; color: #3a7a3a; }
+  .eff-badge.low { background: #fbeee2; color: #a05a2c; }
+  .eff-stars { font-size: 13px; letter-spacing: 1px; white-space: nowrap; }
+  .eff-stars .on { color: #3a7a3a; }
+  .eff-stars .off { color: #cfcabc; }
+  .rate-row { font-size: 13px; margin: 4px 0 8px; display: flex; align-items: center; gap: 6px; }
+  .stars .star { color: #ccc; font-size: 19px; cursor: pointer; padding: 0 1px; line-height: 1; }
+  .stars .star.on, .stars .star:hover { color: #e6a817; }
+  .stars .star.clear { color: #bbb; font-size: 13px; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
   .badge-OK { background: #e3f2e1; color: #2e7d32; }
   .badge-LOW { background: #fff3d6; color: #a86a00; }
   .badge-OUT { background: #fbe1df; color: #b3261e; }
+  .badge-pending { background: #e5edf5; color: #37567f; }
+  .aka-note { color: #3a7a3a; font-style: italic; }
+  .plan-add-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 12px; }
+  .plan-add-row .pa-label { font-size: 12.5px; color: #6b6656; font-weight: 600; }
+  .grocery-warning { background: #fbeee2; border: 1px solid #e9c9a8; color: #8a4b12; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; margin-bottom: 12px; }
   .flag { color: #b5551e; font-size: 13px; }
+  .cell-date { font: inherit; font-size: 12px; color: #4a463c; padding: 2px 4px; border: 1px solid transparent; border-radius: 5px; background: transparent; cursor: pointer; }
+  .cell-date:hover { border-color: #d8d2c4; background: #fffdf8; }
+  .cell-date:focus { border-color: #b5551e; outline: none; background: #fff; }
   .card { background: #fff; border: 1px solid #e5e1d8; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
   .card h3 { margin: 0 0 4px; font-size: 14.5px; }
   .theme-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #eee7d8; color: #7a6a3a; font-weight: 600; }
+  .cat-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #dfe9df; color: #3a5a3a; font-weight: 600; }
+  .cuisine-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #dde6ef; color: #3a4f6a; font-weight: 600; }
+  .card-tags { margin-top: 6px; }
+  .tag-chip { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 20px; background: #f0ece2; color: #6a5f47; margin: 0 3px 3px 0; }
   .card-meta { color: #8a8578; font-size: 12px; margin: 4px 0 8px; }
   .ing-list { font-size: 12.5px; margin: 6px 0; padding-left: 0; list-style: none; }
   .ing-list li { padding: 2px 0; }
   .card-actions { margin-top: 8px; display: flex; gap: 6px; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-bottom: 10px; }
   .form-grid label { display: block; font-size: 11.5px; color: #6b6656; margin-bottom: 3px; font-weight: 600; }
   .form-grid .full { grid-column: 1 / -1; }
-  .form-grid input, .form-grid select, .form-grid textarea { width: 100%; }
-  .ing-row { display: grid; grid-template-columns: 2fr 1fr 2fr auto; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .form-grid input, .form-grid select, .form-grid textarea { width: 100%; box-sizing: border-box; }
+  .ing-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr) auto; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .ing-row input, .ing-row select { min-width: 0; box-sizing: border-box; }
   .modal-bg {
     display: none; position: fixed; inset: 0; background: rgba(30,28,22,.35);
     align-items: center; justify-content: center; z-index: 50;
   }
   .modal-bg.active { display: flex; }
-  .modal { background: #fff; border-radius: 12px; padding: 20px; width: 520px; max-width: 92vw; max-height: 86vh; overflow-y: auto; }
+  .modal { background: #fff; border-radius: 12px; padding: 20px; width: 520px; max-width: 92vw; max-height: 90vh; overflow-y: auto; }
   .modal h2 { margin: 0 0 14px; font-size: 15px; }
   .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
   .empty { color: #8a8578; font-size: 13px; padding: 20px; text-align: center; }
   .week-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
   .week-nav strong { font-size: 14px; }
-  .day-row { display: grid; grid-template-columns: 100px 1fr 1fr 1fr 1fr auto; gap: 8px; align-items: center; padding: 8px; border-bottom: 1px solid #f0ede4; }
-  .day-row:last-child { border-bottom: none; }
-  .day-label { font-weight: 600; font-size: 12.5px; }
+  .day-block { border-bottom: 1px solid #f0ede4; }
+  .day-block:last-child { border-bottom: none; }
+  /* Header + every day row share ONE column template so columns stay uniform and
+     the Save button never shifts when a readiness badge appears/disappears. */
+  .plan-head, .day-row { display: grid; grid-template-columns: 92px 128px minmax(170px, 1.5fr) minmax(115px, 1fr) minmax(115px, 1fr) 84px 64px; gap: 8px; align-items: center; }
+  .day-row { padding: 8px; }
+  .plan-head { padding: 9px 8px 7px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: #8a8578; font-weight: 700; background: #faf8f3; border-bottom: 1px solid #ece8df; }
+  .day-label { font-weight: 600; font-size: 12.5px; align-self: center; }
+  .plan-chips { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .plan-readiness { font-size: 12px; padding: 4px 10px; border-radius: 20px; border: none; cursor: pointer; font-weight: 600; white-space: nowrap; }
+  .plan-readiness.ready { background: #e3f2e1; color: #2e7d32; }
+  .plan-readiness.short { background: #fbe1df; color: #b3261e; }
+  .day-ingredients { padding: 0 8px 12px 118px; }
+  .plan-summary { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+  .plan-summary-text { font-weight: 600; font-size: 13px; }
+  .grocery-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .grocery-list { border: 1px solid #eee7d8; border-radius: 8px; overflow: hidden; background: #fff; }
+  .grocery-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #f2efe6; }
+  .grocery-row:last-child { border-bottom: none; }
+  .grocery-row .card-title { font-weight: 600; font-size: 13.5px; }
+  .gr-spacer { flex: 1; }
+  /* Prominent "next step" callouts — deliberately stand out from the rest. */
+  .grocery-workflow, .stock-import { background: #fff6ec; border: 1px solid #f0c9a0; border-left: 5px solid #b5551e; border-radius: 10px; padding: 14px 16px; margin-bottom: 18px; }
+  .stock-import textarea { width: 100%; box-sizing: border-box; font-family: monospace; font-size: 12.5px; margin: 6px 0 8px; }
+  .wf-status { font-size: 12.5px; color: #8a6a4a; margin-bottom: 8px; }
+  .wf-head, .ns-head { font-weight: 700; font-size: 15px; color: #8f4517; margin-bottom: 6px; }
+  .ns-body { font-size: 13.5px; }
+  .ns-body p { margin: 6px 0; }
+  .wf-opt { font-size: 13.5px; margin: 7px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .wf-sub { font-size: 12.5px; color: #7a6a4a; margin: 0 0 8px 26px; }
+  .copy-icon { background: none; border: none; cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 4px; margin-left: 2px; opacity: 0.65; }
+  .copy-icon:hover { opacity: 1; }
+  /* Floating grocery-cart shortcut, top-right of every tab. */
+  .cart-jump { position: fixed; top: 14px; right: 16px; z-index: 50; background: #fff; border: 1px solid #e5e1d8; border-radius: 10px; font-size: 20px; line-height: 1; padding: 7px 11px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .cart-jump:hover { border-color: #b5551e; }
+  .cart-count { position: absolute; top: -7px; right: -7px; background: #b5551e; color: #fff; font-size: 10px; font-weight: 700; min-width: 17px; height: 17px; line-height: 17px; text-align: center; border-radius: 9px; padding: 0 4px; display: none; }
+  .cart-count.show { display: inline-block; }
+  .wf-say { background: #fff; border: 1px solid #ddd6c5; border-radius: 6px; padding: 1px 7px; font-style: italic; }
   .status-msg { font-size: 12px; padding: 6px 0; color: #8a8578; min-height: 18px; }
   .status-msg.error { color: #b3261e; }
   .small { font-size: 11.5px; color: #8a8578; }
@@ -90,7 +186,10 @@
   .readiness-fill { height: 100%; background: #2e7d32; }
   .readiness-label { font-size: 11.5px; color: #6b6656; font-weight: 600; }
   .missing-list { font-size: 12.5px; margin: 6px 0 0; padding-left: 0; list-style: none; }
-  .missing-list li { padding: 2px 0; }
+  .missing-list li { padding: 2px 0; display: flex; align-items: center; gap: 6px; }
+  .missing-list li .grow { flex: 1; }
+  .readiness-label.all-in { color: #2e7d32; font-weight: 600; }
+  .add-grocery { margin-top: 10px; }
   .toggle-row { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 
   /* grocery shopping-app styling */
@@ -122,7 +221,19 @@
   align-items: start;
 }
 @media (max-width: 640px) {
+  body { padding: 12px; }
   .card-grid { grid-template-columns: 1fr; }
+  /* Meal Plan: stack each day's fields into one readable column */
+  .day-row { grid-template-columns: 1fr; gap: 6px; }
+  .day-ingredients { padding-left: 12px; }
+  /* Stock table: drop Uses (2) + Expires (5) on narrow screens to fit */
+  #stock-table th:nth-child(2), #stock-table td:nth-child(2),
+  #stock-table th:nth-child(5), #stock-table td:nth-child(5) { display: none; }
+  #stock-table { font-size: 12.5px; }
+  #stock-table th, #stock-table td { padding: 6px; }
+  /* Let toolbar inputs use the full width, and wrap grocery-row buttons */
+  .toolbar input[type="text"], .toolbar input[type="search"], .toolbar select { flex: 1 1 140px; min-width: 0; }
+  .grocery-row { flex-wrap: wrap; }
 }
 .card-grid .card { margin-bottom: 0; }
 .card.collapsible { padding: 0; overflow: hidden; }
@@ -167,22 +278,34 @@ button.card-face:focus-visible {
 
 /* Recipes tab: cards styled like a handwritten recipe index card */
 #recipe-list .card.collapsible {
-  border: 1px solid #d9cfa6;
+  border: 1px solid #ece7d2;
   border-radius: 6px;
-  box-shadow: 0 1px 4px rgba(90,70,25,0.16);
-  background-color: #fffdf3;
+  box-shadow: 0 1px 4px rgba(90,70,25,0.08);
+  background-color: #fffef9;
   background-image:
-    linear-gradient(to right, transparent 30px, #e7bcbc 30px, #e7bcbc 31px, transparent 31px),
-    repeating-linear-gradient(transparent, transparent 27px, #d3e3ec 27px, #d3e3ec 28px);
+    linear-gradient(to right, transparent 30px, #f3dede 30px, #f3dede 31px, transparent 31px),
+    repeating-linear-gradient(transparent, transparent 27px, #e9f1f5 27px, #e9f1f5 28px);
   background-attachment: local;
 }
 #recipe-list .card.collapsible > .card-face,
 #recipe-list .card.collapsible > .card-details { padding-left: 40px; }
+/* Recipes: fixed 3-row face so every collapsed card is the same shape/height. */
+#recipe-list .recipe-face { flex-wrap: nowrap; align-items: center; }
+.recipe-face .rf-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.recipe-face .rf-row { display: flex; align-items: center; gap: 8px; min-height: 19px; flex-wrap: nowrap; }
+.recipe-face .rf-row1 .card-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recipe-face .rf-ratio { margin-left: auto; flex: 0 0 auto; padding-left: 8px; }
+.recipe-face .rf-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #a8a496; font-weight: 700; }
+.recipe-face .rf-lbl2 { margin-left: 12px; }
+.rate-stars-ro { font-size: 13px; letter-spacing: 1px; white-space: nowrap; }
+.rate-stars-ro .on { color: #e6a817; }
+.rate-stars-ro .off { color: #cfcabc; }
 #recipe-list .card.collapsible .card-title { font-size: 15px; }
 </style>
 </head>
 <body>
 
+<button class="cart-jump" id="cart-jump" title="Go to Grocery Cart" aria-label="Go to Grocery Cart">🛒<span class="cart-count" id="cart-count"></span></button>
 <h1>GalleyQuest</h1>
 <p class="subtitle">Pantry &amp; Meal Tracker</p>
 <p class="conn-status" id="conn-status">Connecting…</p>
@@ -191,26 +314,41 @@ button.card-face:focus-visible {
   <button class="tab-btn active" data-tab="suggestions">Cook Now</button>
   <button class="tab-btn" data-tab="plan">Meal Plan</button>
   <button class="tab-btn" data-tab="stock">Stock</button>
-  <button class="tab-btn" data-tab="grocery">Grocery List</button>
   <button class="tab-btn" data-tab="recipes">Recipes</button>
+  <button class="tab-btn" data-tab="grocery">Grocery Cart</button>
 </div>
 
 <!-- STOCK PANEL -->
 <div class="panel" id="panel-stock">
   <div class="toolbar">
     <input type="text" id="stock-search" placeholder="Search items…">
-    <select id="stock-filter-category"><option value="">All sections</option></select>
+    <select id="stock-filter-category"><option value="">All aisles</option></select>
     <select id="stock-filter-status"><option value="">All statuses</option></select>
     <div class="seg-group">
       <button type="button" class="seg active" id="sort-section" data-sort="section">By section</button>
       <button type="button" class="seg" id="sort-alpha" data-sort="alpha">A–Z</button>
     </div>
+    <button type="button" class="ghost" id="stock-staples" title="Your most-used ingredients">⭐ Staples</button>
+    <button type="button" class="ghost" id="stock-lowuse" title="Items used in 1 or fewer recipes">⚠ Low-use</button>
     <span style="flex:1"></span>
+    <button class="ghost" id="btn-import-stock">🎤 Use Dispatch to update</button>
     <button class="primary" id="btn-add-stock">+ Add item</button>
+  </div>
+  <div id="stock-import" class="stock-import" style="display:none">
+    <div class="ns-head">🎤 Update your pantry by voice</div>
+    <div class="ns-body">
+      <p>On your <b>phone</b>, open <b>Claude → Dispatch</b> and say <span class="wf-say">"Update my pantry"</span> — then just talk: <i>"we have 1/2 gallon of milk, a dozen eggs, 2 pounds ground beef, out of flour, low on olive oil."</i></p>
+      <details>
+        <summary class="small">No Dispatch handy? Paste the JSON Claude gave you instead</summary>
+        <textarea id="stock-import-json" rows="6" placeholder='[{"name":"milk","status":"OK","category":"dairy_eggs","quantity":"1 gal"},{"name":"flour","status":"OUT","category":"pantry_dry_goods"}]'></textarea>
+        <button class="primary" id="btn-do-import">Import</button>
+      </details>
+    </div>
+    <div style="margin-top:10px"><button class="ghost" id="btn-cancel-import">Close</button></div>
   </div>
   <div class="status-msg" id="stock-status"></div>
   <table id="stock-table">
-    <thead><tr><th>Name</th><th>Section</th><th>Status</th><th>Expires</th><th>Watch</th><th>Notes</th><th></th></tr></thead>
+    <thead><tr><th>Name</th><th title="How many recipes use this — ⭐ staple, ⚠ rarely used">Uses</th><th title="Store aisle / department this item is grouped under">Aisle</th><th>Status</th><th title="Click a cell to set or change an expiration date">Expires</th><th>Qty</th><th></th></tr></thead>
     <tbody id="stock-tbody"></tbody>
   </table>
 </div>
@@ -218,8 +356,12 @@ button.card-face:focus-visible {
 <!-- RECIPES PANEL -->
 <div class="panel" id="panel-recipes">
   <div class="toolbar">
-    <select id="recipe-filter-theme"><option value="">All themes</option></select>
+    <input type="search" id="recipe-search" placeholder="Search recipes…" style="min-width:150px">
+    <select id="recipe-filter-category"><option value="">All categories</option></select>
+    <select id="recipe-filter-cuisine"><option value="">All cuisines</option></select>
     <span style="flex:1"></span>
+    <button type="button" class="ghost" id="recipe-efficient" title="Recipes that use mostly shared ingredients (few special-buy items)">🌿 Efficient</button>
+    <button class="ghost" id="recipe-collapse-all">Collapse all</button>
     <button class="primary" id="btn-add-recipe">+ Add recipe</button>
   </div>
   <div class="status-msg" id="recipe-status"></div>
@@ -235,28 +377,45 @@ button.card-face:focus-visible {
     <button id="week-today" class="ghost">This week</button>
   </div>
   <div class="status-msg" id="plan-status"></div>
+  <div class="plan-summary" id="plan-summary"></div>
   <div class="card" style="padding:0">
+    <div class="plan-head">
+      <span>Day</span><span>Theme</span><span>Recipe</span><span>Meal name</span><span>Notes</span><span>Status</span><span></span>
+    </div>
     <div id="plan-days"></div>
   </div>
 </div>
 
 <!-- GROCERY PANEL -->
 <div class="panel" id="panel-grocery">
-  <p class="small">Everything needed for the week shown in Meal Plan: ingredients you don't have enough of, plus anything else in Stock that's running low, plus whatever you add below.</p>
+  <p class="small">Your shopping list for planned meals, plus anything you add here.</p>
   <div class="add-item-form">
     <input type="text" id="extra-item-name" placeholder="Add something else to this week's list…">
     <input type="text" id="extra-item-notes" placeholder="Notes (optional)" style="max-width:200px">
     <button class="primary" id="btn-add-extra">+ Add</button>
   </div>
+  <div class="plan-add-row">
+    <span class="pa-label">🍽️ Add missing ingredients from planned meals:</span>
+    <button class="ghost" data-horizon="1">This week</button>
+    <button class="ghost" data-horizon="2">Next 2 weeks</button>
+    <button class="ghost" data-horizon="3">3 weeks</button>
+    <button class="ghost" data-horizon="all">All planned</button>
+  </div>
+  <div id="grocery-warning" class="grocery-warning" hidden></div>
   <div class="status-msg" id="grocery-status"></div>
   <div id="grocery-content"></div>
 </div>
 
 <!-- SUGGESTIONS PANEL -->
 <div class="panel active" id="panel-suggestions">
-  <p class="small">Ranks your recipes by how many of their tracked ingredients are currently marked OK in Stock. Untracked ingredients can't be checked automatically.</p>
+  <p class="small">What you can cook with what's in your pantry. Each recipe shows its full ingredient list and what's in stock — add anything you're missing to the grocery list in one click.</p>
   <div class="toolbar">
-    <label class="toggle-row"><input type="checkbox" id="sugg-ready-only" style="width:auto"> Only show fully stocked (tracked ingredients)</label>
+    <input type="search" id="sugg-search" placeholder="Search…" style="min-width:140px">
+    <select id="sugg-filter-category"><option value="">All categories</option></select>
+    <select id="sugg-filter-cuisine"><option value="">All cuisines</option></select>
+    <label class="toggle-row"><input type="checkbox" id="sugg-ready-only" style="width:auto"> Show Fully Stocked</label>
+    <span style="flex:1"></span>
+    <button class="ghost" id="sugg-collapse-all">Collapse all</button>
   </div>
   <div class="status-msg" id="suggestions-status"></div>
   <div id="suggestions-list"></div>
@@ -268,12 +427,11 @@ button.card-face:focus-visible {
     <h2 id="stock-modal-title">Add stock item</h2>
     <div class="form-grid">
       <div class="full"><label>Name</label><input type="text" id="f-stock-name"></div>
-      <div><label>Section</label><select id="f-stock-category"></select></div>
+      <div><label>Aisle</label><select id="f-stock-category"></select></div>
       <div><label>Status</label><select id="f-stock-status">
         <option value="OK">OK</option><option value="LOW">LOW</option><option value="OUT">OUT</option>
       </select></div>
       <div><label>Expiration date</label><input type="date" id="f-stock-expiration"></div>
-      <div><label style="margin-top:18px"><input type="checkbox" id="f-stock-watch" style="width:auto"> Refresh watch (low-use / perishable)</label></div>
       <div class="full"><label>Notes</label><textarea id="f-stock-notes" rows="2"></textarea></div>
     </div>
     <div class="modal-footer">
@@ -290,6 +448,7 @@ button.card-face:focus-visible {
     <div class="form-grid">
       <div class="full"><label>Name</label><input type="text" id="f-recipe-name"></div>
       <div><label>Theme</label><select id="f-recipe-theme"></select></div>
+      <div><label>Cuisine</label><select id="f-recipe-cuisine"></select></div>
       <div class="full"><label>Instructions</label><textarea id="f-recipe-instructions" rows="3"></textarea></div>
       <div class="full"><label>Notes</label><textarea id="f-recipe-notes" rows="2"></textarea></div>
     </div>
@@ -331,6 +490,8 @@ const CATEGORY_LABELS = Object.fromEntries(SECTIONS.map(s => [s.key, s.label]));
 const SECTION_BY_KEY = Object.fromEntries(SECTIONS.map(s => [s.key, s]));
 
 const THEMES = ['Mexican','Thai','Asian','Crock Pot','Grab Night','Invention','Open'];
+// Canonical recipe cuisine families (keep in sync with the taxonomy pass).
+const CUISINES = ['American','Asian','British','Chinese','French','Italian','Japanese','Mediterranean','Mexican','Southwest','Tex-Mex','Thai'];
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
 let stockItems = [];
@@ -339,6 +500,9 @@ let currentWeekStart = mondayOf(new Date());
 let planRows = [];
 let groceryExtras = [];
 let groceryDismissed = [];
+// Lowercased names on THIS week's grocery list — used to mark ingredients
+// "pending" (already added) so they aren't offered again across recipes.
+let groceryNames = new Set();
 let stockSort = 'section'; // 'section' | 'alpha'
 
 function setStatus(id, msg, isError) {
@@ -377,10 +541,31 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    try { localStorage.setItem('gq-tab', btn.dataset.tab); } catch (e) { /* ignore */ }
     if (btn.dataset.tab === 'grocery') renderGrocery();
     if (btn.dataset.tab === 'suggestions') renderSuggestions();
+    if (btn.dataset.tab === 'stock') syncStockHeaderTop();
   });
 });
+
+// Match the sticky Stock column-header offset to the (sticky) toolbar's real
+// height so the two lock cleanly — no gap or overlap at any browser zoom.
+function syncStockHeaderTop() {
+  const tb = document.querySelector('#panel-stock .toolbar');
+  if (tb && tb.offsetHeight) document.documentElement.style.setProperty('--stock-th-top', tb.offsetHeight + 'px');
+}
+window.addEventListener('resize', syncStockHeaderTop);
+
+// Restore the last-viewed tab on load instead of always jumping to Cook Now.
+function restoreLastTab() {
+  try {
+    const saved = localStorage.getItem('gq-tab');
+    if (saved && saved !== 'suggestions') {
+      const b = document.querySelector('.tab-btn[data-tab="' + saved + '"]');
+      if (b) b.click();
+    }
+  } catch (e) { /* ignore */ }
+}
 
 // ================= STOCK =================
 function populateSelect(sel, values, labels) {
@@ -405,30 +590,163 @@ function setStockSort(mode) {
   renderStock();
 }
 
+let stockStaplesOn = false;
+let stockLowOn = false;
+const expandedStockSections = new Set();   // section keys currently open (by-section view)
+
+// How many recipes each stock item appears in (for leverage / single-use).
+function stockUsageMap() {
+  const cnt = {};
+  recipes.forEach(r => {
+    const seen = new Set();
+    (r.ingredients || []).forEach(i => {
+      if (i.stock_item_id && !seen.has(i.stock_item_id)) { seen.add(i.stock_item_id); cnt[i.stock_item_id] = (cnt[i.stock_item_id] || 0) + 1; }
+    });
+  });
+  return cnt;
+}
+// Ingredients in this recipe found in NO other recipe (special-buy / waste risk).
+function recipeSpecialCount(r, usage) {
+  const seen = new Set();
+  let n = 0;
+  (r.ingredients || []).forEach(i => {
+    if (i.stock_item_id && !seen.has(i.stock_item_id)) { seen.add(i.stock_item_id); if ((usage[i.stock_item_id] || 0) <= 1) n++; }
+  });
+  return n;
+}
+
+// Efficiency as 1-5 stars (computed). Rubric = ingredient count + rarity of use:
+// few common staples -> 5 stars; many ingredients, some rarely used -> 1 star.
+// penalty = distinct tracked ingredients + 2*(single-use) + 1*(used-in-2 recipes),
+// excluding always-on-hand items (water/ice). Calibrated over the live DB.
+function efficiencyStars(r, usage) {
+  const seen = new Set();
+  let total = 0, special = 0, rare2 = 0;
+  (r.ingredients || []).forEach(i => {
+    if (isAlwaysOnHand(i.ingredient_name)) return;
+    const key = i.stock_item_id || ('n:' + (i.ingredient_name || '').toLowerCase());
+    if (seen.has(key)) return;
+    seen.add(key);
+    total++;
+    const u = i.stock_item_id ? (usage[i.stock_item_id] || 0) : 0; // untracked -> treated as rare
+    if (u <= 1) special++;
+    else if (u === 2) rare2++;
+  });
+  const penalty = total + 2 * special + rare2;
+  const stars = penalty <= 6 ? 5 : penalty <= 9 ? 4 : penalty <= 13 ? 3 : penalty <= 18 ? 2 : 1;
+  return { stars, total, special };
+}
+function effStarsHtml(r, usage) {
+  const e = efficiencyStars(r, usage);
+  let s = '';
+  for (let i = 1; i <= 5; i++) s += `<span class="${i <= e.stars ? 'on' : 'off'}">★</span>`;
+  return `<span class="eff-stars" title="Efficiency ${e.stars}/5 — ${e.total} ingredient${e.total === 1 ? '' : 's'}, ${e.special} rarely used elsewhere">🌿 ${s}</span>`;
+}
+// Read-only rating stars — always 5, greyed when unrated (for consistent card faces).
+function ratingStarsRO(n) {
+  let s = '';
+  for (let i = 1; i <= 5; i++) s += `<span class="${i <= (n || 0) ? 'on' : 'off'}">★</span>`;
+  return `<span class="rate-stars-ro" title="${n ? n + '-star rating' : 'Not rated yet'}">${s}</span>`;
+}
+
+// Your most-used ingredients: the N stock items used in the most recipes.
+function computeStaples(n) {
+  const cnt = {};
+  recipes.forEach(r => {
+    const seen = new Set();
+    (r.ingredients || []).forEach(i => {
+      if (i.stock_item_id && !seen.has(i.stock_item_id)) {
+        seen.add(i.stock_item_id);
+        cnt[i.stock_item_id] = (cnt[i.stock_item_id] || 0) + 1;
+      }
+    });
+  });
+  return new Set(Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, n).map(e => e[0]));
+}
+
+// Count items that are expired or expiring within the next 14 days.
+function expiringCount(items) {
+  const soon = new Date(); soon.setDate(soon.getDate() + 14);
+  return items.filter(it => it.expiration_date && new Date(it.expiration_date + 'T00:00:00') <= soon).length;
+}
+
+// A sensible general shopping quantity for an item (eggs -> dozen, milk -> gallon…).
+function generalQty(item) {
+  const n = (item.name || '').toLowerCase();
+  const map = [
+    [/\begg(s)?\b/, '1 dozen'], [/\bmilk\b/, '1 gallon'], [/\bbutter\b/, '1 lb (4 sticks)'],
+    [/\bflour\b/, '5 lb bag'], [/\bsugar\b/, '4 lb bag'], [/\brice\b/, '2 lb bag'],
+    [/\bbacon\b/, '1 lb'], [/tortilla/, '1 pack'], [/\bcheese\b/, '8 oz'], [/\byogurt\b/, '32 oz'],
+    [/\bbread\b/, '1 loaf'], [/pasta|spaghetti|penne|noodle|macaroni/, '1 box'],
+    [/\bbeans?\b/, '1 can'], [/\bsalsa\b/, '1 jar'], [/\boil\b/, '1 bottle'],
+  ];
+  for (const [re, q] of map) if (re.test(n)) return q;
+  switch (item.category) {
+    case 'meat_seafood': return '1 lb';
+    case 'dairy_eggs': return '1';
+    case 'canned_goods': return '1 can';
+    case 'beverages': return '1';
+    default: return '';
+  }
+}
+
+// One-click add a stock item to this week's grocery cart with a general quantity.
+async function addStockItemToCart(name) {
+  if (groceryNames.has(name.toLowerCase())) { setStatus('stock-status', name + ' is already in the cart.'); return; }
+  const item = stockItems.find(s => s.name === name);
+  const qty = item ? generalQty(item) : '';
+  try {
+    const res = await sb.from('grocery_extra_items').insert({
+      week_start_date: fmtDate(currentWeekStart), item_name: name, notes: gNote('on_list', qty)
+    });
+    if (res.error) throw res.error;
+    groceryNames.add(name.toLowerCase());
+    updateCartBadge();
+    renderStock();
+    setStatus('stock-status', `Added ${name}${qty ? ' (' + qty + ')' : ''} to cart.`);
+  } catch (e) { setStatus('stock-status', 'Add failed: ' + e.message, true); }
+}
+
 function renderStock() {
   const search = document.getElementById('stock-search').value.toLowerCase();
   const catFilter = document.getElementById('stock-filter-category').value;
   const statusFilter = document.getElementById('stock-filter-status').value;
   const tbody = document.getElementById('stock-tbody');
+  const staples = computeStaples(30);
+  const usage = stockUsageMap();
   const rows = stockItems.filter(it =>
     (!search || it.name.toLowerCase().includes(search)) &&
     (!catFilter || it.category === catFilter) &&
-    (!statusFilter || it.status === statusFilter)
+    (!statusFilter || it.status === statusFilter) &&
+    (!stockStaplesOn || staples.has(it.id)) &&
+    (!stockLowOn || (usage[it.id] || 0) <= 1)
   );
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="7"><div class="empty">No stock items match.</div></td></tr>`;
     return;
   }
 
-  function itemRow(it) {
+  function itemRow(it, hidden) {
+    const uses = usage[it.id] || 0;
+    const usesCell = staples.has(it.id)
+      ? `<span class="use-staple" title="One of your most-used ingredients">⭐ ${uses}</span>`
+      : uses <= 1
+        ? `<span class="use-low" title="Used in ${uses} recipe${uses === 1 ? '' : 's'} — low leverage">⚠ ${uses}</span>`
+        : `<span class="use-mid" title="Used in ${uses} recipes">${uses}</span>`;
+    const onCart = groceryNames.has(it.name.toLowerCase());
+    const gq = generalQty(it);
+    const qtyText = it.notes ? escHtml(it.notes) : (gq ? `<span class="qty-suggest" title="Suggested shopping amount">${escHtml(gq)}</span>` : '');
+    const cartBtn = onCart
+      ? '<span class="on-cart" title="Already in cart">🛒</span>'
+      : `<button class="ghost add-cart-btn" data-action="add-to-cart" data-name="${escAttr(it.name)}" title="Add to grocery cart">＋</button>`;
     return `
-    <tr>
+    <tr class="stock-item-row"${hidden ? ' style="display:none"' : ''} data-sec="${it.category}">
       <td>${escHtml(it.name)}</td>
+      <td class="col-uses">${usesCell}</td>
       <td>${CATEGORY_LABELS[it.category] || it.category}</td>
-      <td><span class="badge badge-${it.status}">${it.status}</span></td>
-      <td>${it.expiration_date || '—'}</td>
-      <td>${it.refresh_watch ? '<span class="flag">&#9873;</span>' : ''}</td>
-      <td>${escHtml(it.notes || '')}</td>
+      <td>${statusBadge(it.status) || `<span class="badge">${escHtml(it.status || '')}</span>`}</td>
+      <td><input type="date" class="cell-date" value="${escAttr(it.expiration_date || '')}" data-expire="${escAttr(it.id)}" title="Click to set / change expiration date"></td>
+      <td class="col-qty">${qtyText}<span class="qty-cart">${cartBtn}</span></td>
       <td>
         <button class="ghost" onclick="editStock('${it.id}')">Edit</button>
         <button class="ghost danger" onclick="deleteStock('${it.id}')">Delete</button>
@@ -438,24 +756,122 @@ function renderStock() {
 
   if (stockSort === 'alpha') {
     const sorted = [...rows].sort((a, b) => a.name.localeCompare(b.name));
-    tbody.innerHTML = sorted.map(itemRow).join('');
+    tbody.innerHTML = sorted.map(it => itemRow(it, false)).join('');
   } else {
+    // Collapsible sections; open when searching/filtering by staples so results show.
+    const forceOpen = !!search || stockStaplesOn || stockLowOn;
     let html = '';
     SECTIONS.forEach(sec => {
       const items = rows.filter(it => it.category === sec.key).sort((a, b) => a.name.localeCompare(b.name));
       if (!items.length) return;
-      html += `<tr class="section-row"><td colspan="7">${sec.icon} ${sec.label} (${items.length})</td></tr>`;
-      html += items.map(itemRow).join('');
+      const open = forceOpen || expandedStockSections.has(sec.key);
+      const ok = items.filter(i => i.status === 'OK').length;
+      const low = items.filter(i => i.status === 'LOW').length;
+      const exp = expiringCount(items);
+      const statusCell = `<span class="sec-stat" title="In stock (OK) of total tracked in this aisle"><b>${ok}/${items.length}</b> in stock</span>`
+        + (low ? `<span class="sec-stat sec-low" title="Running low">${low} low</span>` : '');
+      const expCell = exp ? `<span class="sec-stat sec-exp" title="Expired or expiring within 14 days">⏰ ${exp}</span>` : '';
+      // Header cells align under the real columns (Name · Uses · Aisle · Status · Expires · Qty · actions).
+      html += `<tr class="section-row" data-sec="${sec.key}">`
+        + `<td><span class="sec-chev">${open ? '▾' : '▸'}</span> ${sec.icon} ${sec.label}</td>`
+        + `<td></td><td></td><td>${statusCell}</td><td>${expCell}</td><td></td><td></td></tr>`;
+      html += items.map(it => itemRow(it, !open)).join('');
     });
     tbody.innerHTML = html || `<tr><td colspan="7"><div class="empty">No stock items match.</div></td></tr>`;
   }
 }
+// Add-to-cart "＋" in the Qty column, and toggle a section open/closed.
+document.getElementById('stock-tbody').addEventListener('click', (e) => {
+  const add = e.target.closest('[data-action="add-to-cart"]');
+  if (add) { e.stopPropagation(); addStockItemToCart(add.getAttribute('data-name')); return; }
+  const hdr = e.target.closest('tr.section-row');
+  if (!hdr) return;
+  const key = hdr.getAttribute('data-sec');
+  if (expandedStockSections.has(key)) expandedStockSections.delete(key); else expandedStockSections.add(key);
+  renderStock();
+});
+document.getElementById('stock-staples').addEventListener('click', () => {
+  stockStaplesOn = !stockStaplesOn;
+  if (stockStaplesOn) { stockLowOn = false; document.getElementById('stock-lowuse').classList.remove('active'); }
+  document.getElementById('stock-staples').classList.toggle('active', stockStaplesOn);
+  renderStock();
+});
+document.getElementById('stock-lowuse').addEventListener('click', () => {
+  stockLowOn = !stockLowOn;
+  if (stockLowOn) { stockStaplesOn = false; document.getElementById('stock-staples').classList.remove('active'); }
+  document.getElementById('stock-lowuse').classList.toggle('active', stockLowOn);
+  renderStock();
+});
 
 let editingStockId = null;
 document.getElementById('btn-add-stock').addEventListener('click', () => openStockModal());
 document.getElementById('stock-modal-cancel').addEventListener('click', () => closeModal('stock-modal'));
 ['stock-search','stock-filter-category','stock-filter-status'].forEach(id =>
   document.getElementById(id).addEventListener('input', renderStock));
+
+// ---- Import spoken pantry (paste the JSON Claude produced) ----
+// Common spoken generics -> the canonical pantry item, to avoid duplicates.
+const STOCK_SYNONYMS = {
+  'milk': '2% milk', 'flour': 'All-purpose flour', 'sugar': 'White sugar',
+  'salt': 'Morton iodized salt', 'pepper': 'Black pepper', 'garlic': 'Garlic cloves',
+  'onion': 'Yellow onion', 'butter': 'Unsalted butter', 'oil': 'Vegetable oil',
+  'olive oil': 'Virgin olive oil', 'soy sauce': 'Less sodium soy sauce',
+  'cream cheese': 'Philadelphia cream cheese', 'peanut butter': 'Jif peanut butter',
+  'honey': 'Local Texas honey', 'rice': 'Basmati rice', 'oats': 'Old fashioned rolled oats',
+  'egg': 'Eggs', 'eggs': 'Eggs', 'bacon': 'Bacon', 'chicken stock': 'Chicken broth',
+  'beef stock': 'Beef broth', 'cornstarch': 'Corn starch'
+};
+function singularWord(w) {
+  if (w.length > 3 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
+  if (w.length > 4 && w.endsWith('oes')) return w.slice(0, -2);
+  if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+  return w;
+}
+function normStockName(n) {
+  return (n || '').toLowerCase().replace(/\([^)]*\)/g, ' ').split(',')[0]
+    .replace(/[^a-z0-9 ]+/g, ' ').trim().split(/\s+/).map(singularWord).join(' ');
+}
+async function importPantryJson() {
+  let items;
+  try { items = JSON.parse(document.getElementById('stock-import-json').value); if (!Array.isArray(items)) throw 0; }
+  catch (e) { setStatus('stock-status', "That isn't valid JSON — paste the array Claude gave you.", true); return; }
+  const byNorm = {};
+  stockItems.forEach(s => { byNorm[normStockName(s.name)] = s; });
+  let updated = 0, added = 0, errs = 0;
+  for (const it of items) {
+    const raw = (it.name || '').trim();
+    if (!raw) continue;
+    const status = ['OK', 'LOW', 'OUT'].includes(it.status) ? it.status : 'OK';
+    const syn = STOCK_SYNONYMS[raw.toLowerCase()];
+    const targetName = syn || raw;
+    const existing = byNorm[normStockName(targetName)] || byNorm[normStockName(raw)];
+    const note = it.quantity || it.notes || null;
+    try {
+      if (existing) {
+        await sb.from('stock_items').update({ status, notes: note || existing.notes, updated_at: new Date().toISOString() }).eq('id', existing.id);
+        updated++;
+      } else {
+        const cat = SECTIONS.some(s => s.key === it.category) ? it.category : 'household_other';
+        await sb.from('stock_items').insert({ name: targetName, category: cat, status, notes: note });
+        added++;
+      }
+    } catch (e) { errs++; }
+  }
+  await loadStock();
+  await refreshGroceryNames();
+  rerenderPending();
+  setStatus('stock-status', `Imported: ${updated} updated, ${added} added` + (errs ? `, ${errs} failed` : '') + '.');
+  document.getElementById('stock-import').style.display = 'none';
+  document.getElementById('stock-import-json').value = '';
+}
+document.getElementById('btn-import-stock').addEventListener('click', () => {
+  const el = document.getElementById('stock-import');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('btn-cancel-import').addEventListener('click', () => {
+  document.getElementById('stock-import').style.display = 'none';
+});
+document.getElementById('btn-do-import').addEventListener('click', importPantryJson);
 
 function openStockModal(item) {
   editingStockId = item ? item.id : null;
@@ -464,7 +880,6 @@ function openStockModal(item) {
   document.getElementById('f-stock-category').value = item ? item.category : CATEGORIES[0];
   document.getElementById('f-stock-status').value = item ? item.status : 'OK';
   document.getElementById('f-stock-expiration').value = item && item.expiration_date ? item.expiration_date : '';
-  document.getElementById('f-stock-watch').checked = item ? !!item.refresh_watch : false;
   document.getElementById('f-stock-notes').value = item ? (item.notes || '') : '';
   openModal('stock-modal');
 }
@@ -485,17 +900,16 @@ document.getElementById('stock-modal-save').addEventListener('click', async () =
   const category = document.getElementById('f-stock-category').value;
   const status = document.getElementById('f-stock-status').value;
   const expiration = document.getElementById('f-stock-expiration').value || null;
-  const watch = document.getElementById('f-stock-watch').checked;
   const notes = document.getElementById('f-stock-notes').value.trim() || null;
   try {
     if (editingStockId) {
       const { error } = await sb.from('stock_items').update({
-        name, category, status, expiration_date: expiration, refresh_watch: watch, notes, updated_at: new Date().toISOString()
+        name, category, status, expiration_date: expiration, notes, updated_at: new Date().toISOString()
       }).eq('id', editingStockId);
       if (error) throw error;
     } else {
       const { error } = await sb.from('stock_items').insert({
-        name, category, status, expiration_date: expiration, refresh_watch: watch, notes
+        name, category, status, expiration_date: expiration, notes
       });
       if (error) throw error;
     }
@@ -505,31 +919,89 @@ document.getElementById('stock-modal-save').addEventListener('click', async () =
   } catch (e) { setStatus('stock-status', 'Save failed: ' + e.message, true); }
 });
 
+// Inline expiration editing straight from the Stock table (no need to open the editor).
+document.getElementById('stock-tbody').addEventListener('change', async (e) => {
+  const inp = e.target.closest('input[data-expire]');
+  if (!inp) return;
+  const id = inp.getAttribute('data-expire');
+  const val = inp.value || null;
+  const it = stockItems.find(x => x.id === id);
+  try {
+    const { error } = await sb.from('stock_items').update({ expiration_date: val, updated_at: new Date().toISOString() }).eq('id', id);
+    if (error) throw error;
+    if (it) it.expiration_date = val;
+    setStatus('stock-status', val ? 'Expiration set for ' + (it ? it.name : 'item') + '.' : 'Expiration cleared.');
+  } catch (err) { setStatus('stock-status', 'Save failed: ' + err.message, true); }
+});
+
 // ================= RECIPES =================
+// Recipe taxonomy is stored as Cuisine/Category/Tags lines inside notes.
+function parseTax(notes) {
+  const t = { cuisine: '', category: '', tags: [], rating: 0 };
+  (notes || '').split('\n').forEach(line => {
+    const m = line.match(/^\s*(Cuisine|Category|Tags|Rating)\s*:\s*(.+)$/i);
+    if (!m) return;
+    const k = m[1].toLowerCase(), v = m[2].trim();
+    if (k === 'cuisine') t.cuisine = v;
+    else if (k === 'category') t.category = v;
+    else if (k === 'tags') t.tags = v.split(',').map(s => s.trim()).filter(Boolean);
+    else if (k === 'rating') t.rating = Math.max(0, Math.min(5, parseInt(v) || 0));
+  });
+  return t;
+}
+// Human-facing notes only: drop the structured taxonomy + source metadata lines.
+function displayNotes(notes) {
+  return (notes || '').split('\n')
+    .filter(l => !/^\s*(Cuisine|Category|Tags|Rating|Source|MealDB ID|Original area|Original category|Source URL)\s*:/i.test(l))
+    .join('\n').trim();
+}
+function populateRecipeFilters() {
+  const uniq = key => [...new Set(recipes.map(r => r.tax[key]).filter(Boolean))].sort();
+  const fill = (id, label, vals) => {
+    const el = document.getElementById(id); const cur = el.value;
+    el.innerHTML = `<option value="">${label}</option>` +
+      vals.map(v => `<option value="${escAttr(v)}">${escHtml(v)}</option>`).join('');
+    el.value = cur;
+  };
+  fill('recipe-filter-category', 'All categories', uniq('category'));
+  fill('recipe-filter-cuisine', 'All cuisines', uniq('cuisine'));
+  fill('sugg-filter-category', 'All categories', uniq('category'));
+  fill('sugg-filter-cuisine', 'All cuisines', uniq('cuisine'));
+}
+
 async function loadRecipes() {
   try {
     const { data, error } = await sb.from('recipes')
       .select('*, recipe_ingredients(id, ingredient_name, quantity, stock_item_id)')
       .order('name');
     if (error) throw error;
-    recipes = data.map(r => ({ ...r, ingredients: r.recipe_ingredients || [] }));
+    recipes = data.map(r => ({ ...r, ingredients: r.recipe_ingredients || [], tax: parseTax(r.notes) }));
+    populateRecipeFilters();
     renderRecipes();
   } catch (e) { setStatus('recipe-status', 'Failed to load: ' + e.message, true); }
 }
 
 function renderRecipes() {
-  const themeFilter = document.getElementById('recipe-filter-theme').value;
-  const list = recipes.filter(r => !themeFilter || r.theme === themeFilter);
+  const q = document.getElementById('recipe-search').value.trim().toLowerCase();
+  const catFilter = document.getElementById('recipe-filter-category').value;
+  const cuiFilter = document.getElementById('recipe-filter-cuisine').value;
+  const usage = stockUsageMap();
+  const list = recipes.filter(r =>
+    (!catFilter || r.tax.category === catFilter) &&
+    (!cuiFilter || r.tax.cuisine === cuiFilter) &&
+    (!q || r.name.toLowerCase().includes(q) || r.tax.tags.some(t => t.toLowerCase().includes(q))) &&
+    (!recipeEfficientOn || efficiencyStars(r, usage).stars >= 4)
+  );
   const container = document.getElementById('recipe-list');
   container.classList.add('card-grid');
-  if (!list.length) { container.innerHTML = '<div class="empty">No recipes yet.</div>'; return; }
+  if (!list.length) { container.innerHTML = '<div class="empty">No recipes match your filters.</div>'; return; }
   const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
   container.innerHTML = list.map(r => {
     const ingHtml = (r.ingredients || []).map(ing => {
       const s = ing.stock_item_id ? stockById[ing.stock_item_id] : null;
-      const st = s ? safeStatus(s.status) : null;   // runtime allowlist
-      const badge = st ? `<span class="badge badge-${st}">${st}</span>`
-        : (s ? `<span class="small">${escHtml(s.status || '')}</span>` : `<span class="small">not tracked</span>`);
+      const badge = isAlwaysOnHand(ing.ingredient_name)
+        ? statusBadge('OK')
+        : (statusBadge(s ? s.status : null) || `<span class="small">not tracked</span>`);
       return `<li>${escHtml(ing.ingredient_name)}${ing.quantity ? ' — ' + escHtml(ing.quantity) : ''} ${badge}</li>`;
     }).join('');
     const readiness = computeReadiness(r, stockById);
@@ -539,18 +1011,27 @@ function renderRecipes() {
         ? `<span class="badge badge-OK">${readiness.ok}/${readiness.tracked}</span>`
         : `<span class="badge badge-LOW">${readiness.ok}/${readiness.tracked}</span>`);
     const detailsId = `recipes-card-details-${r.id}`;
+    const special = recipeSpecialCount(r, usage);
     return `
       <div class="card collapsible" data-card-id="${escAttr(r.id)}">
-        <button type="button" class="card-face" aria-expanded="false" aria-controls="${escAttr(detailsId)}">
-          <span class="card-title">${escHtml(r.name)}</span>
-          ${r.theme ? `<span class="theme-tag">${escHtml(r.theme)}</span>` : ''}
-          ${faceBadge}
+        <button type="button" class="card-face recipe-face" aria-expanded="false" aria-controls="${escAttr(detailsId)}">
+          <span class="rf-main">
+            <span class="rf-row rf-row1"><span class="card-title">${escHtml(r.name)}</span><span class="rf-ratio">${faceBadge}</span></span>
+            <span class="rf-row rf-row2">${r.tax.category ? `<span class="cat-tag">${escHtml(r.tax.category)}</span>` : ''}${r.tax.cuisine ? `<span class="cuisine-tag">${escHtml(r.tax.cuisine)}</span>` : ''}</span>
+            <span class="rf-row rf-row3"><span class="rf-lbl">Rating</span>${ratingStarsRO(r.tax.rating)}<span class="rf-lbl rf-lbl2">Efficiency</span>${effStarsHtml(r, usage)}</span>
+          </span>
           <span class="chev" aria-hidden="true"></span>
         </button>
         <div class="card-details" id="${escAttr(detailsId)}">
+          <div class="rate-row">Your rating: ${starWidget(r.id, r.tax.rating)}</div>
+          <div class="rate-row">Efficiency: ${effStarsHtml(r, usage)}</div>
           ${r.instructions ? `<div class="card-meta">${escHtml(r.instructions)}</div>` : ''}
           ${ingHtml ? `<ul class="ing-list">${ingHtml}</ul>` : '<p class="small">No ingredients listed.</p>'}
-          ${r.notes ? `<p class="small">${escHtml(r.notes)}</p>` : ''}
+          ${r.tax.tags.length ? `<div class="card-tags">${r.tax.tags.map(t => `<span class="tag-chip">${escHtml(t)}</span>`).join('')}</div>` : ''}
+          ${special > 0
+            ? `<div class="special-note">🛒 ${special} special-buy ingredient${special === 1 ? '' : 's'} (used in no other recipe)</div>`
+            : `<div class="special-note efficient">🌿 pantry-efficient — no special-buy ingredients</div>`}
+          ${displayNotes(r.notes) ? `<p class="small">${escHtml(displayNotes(r.notes))}</p>` : ''}
           <div class="card-actions">
             <button class="ghost" data-action="edit" data-id="${escAttr(r.id)}">Edit</button>
             <button class="ghost danger" data-action="delete" data-id="${escAttr(r.id)}">Delete</button>
@@ -565,8 +1046,41 @@ function renderRecipes() {
 }
 
 let editingRecipeId = null;
-document.getElementById('recipe-filter-theme').addEventListener('input', renderRecipes);
+document.getElementById('recipe-search').addEventListener('input', renderRecipes);
+document.getElementById('recipe-filter-category').addEventListener('input', renderRecipes);
+document.getElementById('recipe-filter-cuisine').addEventListener('input', renderRecipes);
 document.getElementById('btn-add-recipe').addEventListener('click', () => openRecipeModal());
+document.getElementById('recipe-collapse-all').addEventListener('click', () => collapseAll('recipe-list', 'recipes'));
+let recipeEfficientOn = false;
+document.getElementById('recipe-efficient').addEventListener('click', () => {
+  recipeEfficientOn = !recipeEfficientOn;
+  document.getElementById('recipe-efficient').classList.toggle('active', recipeEfficientOn);
+  renderRecipes();
+});
+
+// ---- User 1-5 star ratings (stored as a "Rating:" line in notes) ----
+function starWidget(recipeId, rating) {
+  let s = '<span class="stars">';
+  for (let i = 1; i <= 5; i++) {
+    s += `<span class="star ${i <= rating ? 'on' : ''}" data-action="rate" data-id="${escAttr(recipeId)}" data-rate="${i}" role="button" title="${i} star${i === 1 ? '' : 's'}">★</span>`;
+  }
+  if (rating) s += ` <span class="star clear" data-action="rate" data-id="${escAttr(recipeId)}" data-rate="0" title="Clear rating">✕</span>`;
+  return s + '</span>';
+}
+async function setRating(recipeId, n) {
+  const r = recipes.find(x => x.id === recipeId);
+  if (!r) return;
+  const rest = (r.notes || '').split('\n').filter(l => !/^\s*Rating\s*:/i.test(l));
+  const notes = ((n > 0 ? 'Rating: ' + n + '\n' : '') + rest.join('\n')).trim();
+  try {
+    await sb.from('recipes').update({ notes: notes || null, updated_at: new Date().toISOString() }).eq('id', recipeId);
+    await loadRecipes();
+  } catch (e) { setStatus('recipe-status', 'Rating failed: ' + e.message, true); }
+}
+document.getElementById('recipe-list').addEventListener('click', (e) => {
+  const st = e.target.closest('[data-action="rate"]');
+  if (st) { e.stopPropagation(); setRating(st.getAttribute('data-id'), parseInt(st.getAttribute('data-rate'))); }
+});
 document.getElementById('recipe-modal-cancel').addEventListener('click', () => closeModal('recipe-modal'));
 document.getElementById('btn-add-ing-row').addEventListener('click', () => addIngRow());
 
@@ -591,8 +1105,10 @@ function openRecipeModal(recipe) {
   document.getElementById('recipe-modal-title').textContent = recipe ? 'Edit recipe' : 'Add recipe';
   document.getElementById('f-recipe-name').value = recipe ? recipe.name : '';
   document.getElementById('f-recipe-theme').value = recipe ? (recipe.theme || '') : '';
+  document.getElementById('f-recipe-cuisine').value = recipe && recipe.tax ? (recipe.tax.cuisine || '') : '';
   document.getElementById('f-recipe-instructions').value = recipe ? (recipe.instructions || '') : '';
-  document.getElementById('f-recipe-notes').value = recipe ? (recipe.notes || '') : '';
+  // Cuisine is managed by the dropdown above; hide its line from the raw-notes box to avoid two sources of truth.
+  document.getElementById('f-recipe-notes').value = recipe ? (recipe.notes || '').split('\n').filter(l => !/^\s*Cuisine\s*:/i.test(l)).join('\n').trim() : '';
   document.getElementById('ing-rows').innerHTML = '';
   if (recipe && recipe.ingredients && recipe.ingredients.length) {
     recipe.ingredients.forEach(ing => addIngRow(ing));
@@ -600,7 +1116,14 @@ function openRecipeModal(recipe) {
     addIngRow();
   }
   openModal('recipe-modal');
+  requestAnimationFrame(() => ['f-recipe-instructions', 'f-recipe-notes'].forEach(id => autoGrow(document.getElementById(id))));
 }
+// Auto-size a textarea to its content so the edit form doesn't scroll internally.
+function autoGrow(el) { if (!el) return; el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; }
+['f-recipe-instructions', 'f-recipe-notes'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', () => autoGrow(el));
+});
 window.editRecipe = (id) => openRecipeModal(recipes.find(r => r.id === id));
 window.deleteRecipe = async (id) => {
   if (!confirm('Delete this recipe and its ingredient list?')) return;
@@ -617,7 +1140,9 @@ document.getElementById('recipe-modal-save').addEventListener('click', async () 
   if (!name) { setStatus('recipe-status', 'Name is required.', true); return; }
   const theme = document.getElementById('f-recipe-theme').value || null;
   const instructions = document.getElementById('f-recipe-instructions').value.trim() || null;
-  const notes = document.getElementById('f-recipe-notes').value.trim() || null;
+  const cuisine = document.getElementById('f-recipe-cuisine').value;
+  const notesBody = document.getElementById('f-recipe-notes').value.split('\n').filter(l => !/^\s*Cuisine\s*:/i.test(l)).join('\n').trim();
+  const notes = ((cuisine ? 'Cuisine: ' + cuisine + '\n' : '') + notesBody).trim() || null;
   const ingRows = Array.from(document.querySelectorAll('#ing-rows .ing-row')).map(row => ({
     name: row.querySelector('.ing-name').value.trim(),
     qty: row.querySelector('.ing-qty').value.trim() || null,
@@ -666,25 +1191,92 @@ async function loadPlan() {
   } catch (e) { setStatus('plan-status', 'Failed to load: ' + e.message, true); }
 }
 
+// Which recipe cuisines each meal-plan theme maps to. Themes not listed
+// (Crock Pot, Grab Night, Invention, Open, or none) place no cuisine filter.
+const THEME_CUISINES = {
+  'Mexican': ['Tex-Mex', 'Mexican', 'Southwest'],
+  'Thai': ['Thai'],
+  'Asian': ['Asian', 'Chinese', 'Japanese', 'Thai'],
+};
+
+// Recipe dropdown grouped by cuisine (the flat 200+ list was unusable). When a
+// theme is chosen, cross-reference it: show only that theme's cuisines (the
+// currently-selected recipe is always kept, even if off-theme).
+function groupedRecipeOptions(selectedId, theme) {
+  const allowed = THEME_CUISINES[theme] || null;
+  const byCuisine = {};
+  recipes.forEach(r => {
+    const cui = (r.tax && r.tax.cuisine) || 'Other';
+    if (allowed && !allowed.includes(cui) && r.id !== selectedId) return;
+    (byCuisine[cui] = byCuisine[cui] || []).push(r);
+  });
+  const opt = r => `<option value="${r.id}" ${selectedId === r.id ? 'selected' : ''}>${escHtml(r.name)}</option>`;
+  let html = `<option value="">(none)</option>`;
+  Object.keys(byCuisine).sort((a, b) => a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b)).forEach(cui => {
+    const list = byCuisine[cui].slice().sort((a, b) => a.name.localeCompare(b.name));
+    html += `<optgroup label="${escHtml(cui)}">${list.map(opt).join('')}</optgroup>`;
+  });
+  return html;
+}
+
+function planChips(recipe) {
+  if (!recipe || !recipe.tax) return '';
+  return (recipe.tax.category ? `<span class="cat-tag">${escHtml(recipe.tax.category)}</span>` : '') +
+         (recipe.tax.cuisine ? `<span class="cuisine-tag">${escHtml(recipe.tax.cuisine)}</span>` : '');
+}
+
+function planBuyable(recipe) {
+  const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
+  return computeReadiness(recipe, stockById).items.filter(it => (it.status === 'OUT' || it.status === 'LOW') && !it.pending);
+}
+
+function planReadinessBadge(recipe) {
+  if (!recipe) return '';
+  const n = planBuyable(recipe).length;
+  return n === 0
+    ? `<button type="button" class="plan-readiness ready">✓ ready</button>`
+    : `<button type="button" class="plan-readiness short">${n} to buy</button>`;
+}
+
+function planIngredientsHtml(recipe) {
+  if (!recipe) return '';
+  const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
+  const rd = computeReadiness(recipe, stockById);
+  const lis = rd.items.map(it => {
+    const badge = it.pending ? '<span class="badge badge-pending">🛒 on list</span>'
+      : (statusBadge(it.status) || '<span class="small">not tracked</span>');
+    const qty = it.quantity ? ` <span class="small">${escHtml(it.quantity)}</span>` : '';
+    const via = it.via ? ` <span class="small aka-note">↔ using ${escHtml(it.via)}</span>` : '';
+    return `<li><span class="grow">${escHtml(it.name)}${qty}${via}</span> ${badge}</li>`;
+  }).join('');
+  const addable = rd.items.filter(it => (it.status === 'OUT' || it.status === 'LOW') && !it.pending).length;
+  const addBtn = addable > 0
+    ? `<button class="ghost add-grocery" data-action="add-grocery" data-id="${escAttr(recipe.id)}">+ Add ${addable} to cart</button>`
+    : '';
+  return `<ul class="missing-list">${lis}</ul>${addBtn}`;
+}
+
 function renderPlan() {
   const byDay = Object.fromEntries(planRows.map(r => [r.day_of_week, r]));
   const container = document.getElementById('plan-days');
   container.innerHTML = DAYS.map(day => {
     const row = byDay[day] || {};
+    const sel = row.recipe_id ? recipes.find(r => r.id === row.recipe_id) : null;
     const themeOptions = ['<option value="">—</option>'].concat(
       THEMES.map(t => `<option value="${t}" ${row.theme === t ? 'selected' : ''}>${t}</option>`)
     ).join('');
-    const recipeOptions = ['<option value="">(none)</option>'].concat(
-      recipes.map(r => `<option value="${r.id}" ${row.recipe_id === r.id ? 'selected' : ''}>${escHtml(r.name)}</option>`)
-    ).join('');
     return `
-      <div class="day-row" data-day="${day}">
-        <div class="day-label">${day}</div>
-        <select class="plan-theme">${themeOptions}</select>
-        <select class="plan-recipe">${recipeOptions}</select>
-        <input type="text" class="plan-mealname" placeholder="Meal name (optional)" value="${escHtml(row.meal_name || '')}">
-        <input type="text" class="plan-notes" placeholder="Notes" value="${escHtml(row.notes || '')}">
-        <button class="primary plan-save">Save</button>
+      <div class="day-block">
+        <div class="day-row" data-day="${day}">
+          <div class="day-label">${day}<div class="plan-chips">${planChips(sel)}</div></div>
+          <select class="plan-theme">${themeOptions}</select>
+          <select class="plan-recipe">${groupedRecipeOptions(row.recipe_id, row.theme)}</select>
+          <input type="text" class="plan-mealname" placeholder="Meal name (optional)" value="${escHtml(row.meal_name || '')}">
+          <input type="text" class="plan-notes" placeholder="Notes" value="${escHtml(row.notes || '')}">
+          <span class="plan-ready-cell">${planReadinessBadge(sel)}</span>
+          <button class="primary plan-save">Save</button>
+        </div>
+        <div class="day-ingredients" hidden>${planIngredientsHtml(sel)}</div>
       </div>
     `;
   }).join('');
@@ -707,11 +1299,78 @@ function renderPlan() {
       } catch (err) { setStatus('plan-status', 'Save failed: ' + err.message, true); }
     });
   });
+  renderPlanSummary();
 }
 
-document.getElementById('week-prev').addEventListener('click', () => { currentWeekStart = addDays(currentWeekStart, -7); loadPlan(); });
-document.getElementById('week-next').addEventListener('click', () => { currentWeekStart = addDays(currentWeekStart, 7); loadPlan(); });
-document.getElementById('week-today').addEventListener('click', () => { currentWeekStart = mondayOf(new Date()); loadPlan(); });
+function renderPlanSummary() {
+  const el = document.getElementById('plan-summary');
+  const planned = planRows.filter(r => r.recipe_id).map(r => recipes.find(x => x.id === r.recipe_id)).filter(Boolean);
+  if (!planned.length) { el.innerHTML = '<span class="small">No recipes planned this week yet — pick one for each day below.</span>'; return; }
+  let ready = 0; const buySet = new Set();
+  planned.forEach(r => {
+    const buy = planBuyable(r);
+    if (!buy.length) ready++;
+    buy.forEach(it => buySet.add(it.stockName || it.name));
+  });
+  el.innerHTML = `<span class="plan-summary-text">${ready} of ${planned.length} planned meals ready · ${buySet.size} item${buySet.size === 1 ? '' : 's'} to buy</span>` +
+    (buySet.size ? `<button class="primary" id="btn-shop-week">🛒 Add ${buySet.size} to cart</button>` : '');
+  const btn = document.getElementById('btn-shop-week');
+  if (btn) btn.addEventListener('click', addWeekMissingToGrocery);
+}
+
+async function addWeekMissingToGrocery() {
+  const planned = planRows.filter(r => r.recipe_id).map(r => recipes.find(x => x.id === r.recipe_id)).filter(Boolean);
+  const names = new Set();
+  planned.forEach(r => planBuyable(r).forEach(it => names.add(it.stockName || it.name)));
+  if (!names.size) return;
+  const weekStr = fmtDate(currentWeekStart);
+  try {
+    const rows = [...names].map(n => ({ week_start_date: weekStr, item_name: n, notes: gNote('on_list', "for this week's meals") }));
+    const { error } = await sb.from('grocery_extra_items').insert(rows);
+    if (error) throw error;
+    await refreshGroceryNames();
+    renderPlan();
+    if (recipes.length) renderSuggestions();
+    setStatus('plan-status', `Added ${rows.length} item${rows.length === 1 ? '' : 's'} to this week's grocery list.`);
+  } catch (e) { setStatus('plan-status', 'Add failed: ' + e.message, true); }
+}
+
+// Delegated interactions on the plan grid (attached once; container persists).
+document.getElementById('plan-days').addEventListener('click', (e) => {
+  const rb = e.target.closest('.plan-readiness');
+  if (rb) { const ing = rb.closest('.day-block').querySelector('.day-ingredients'); ing.hidden = !ing.hidden; return; }
+  const ag = e.target.closest('[data-action="add-grocery"]');
+  if (ag) { window.addMissingToGrocery(ag.getAttribute('data-id')); return; }
+});
+document.getElementById('plan-days').addEventListener('change', (e) => {
+  const blk = e.target.closest('.day-block');
+  // Theme changed -> cross-reference the recipe list to that theme's cuisines.
+  if (e.target.classList.contains('plan-theme')) {
+    const recSel = blk.querySelector('.plan-recipe');
+    const cur = recSel.value;
+    recSel.innerHTML = groupedRecipeOptions(cur || null, e.target.value);
+    recSel.value = cur;
+    return;
+  }
+  if (!e.target.classList.contains('plan-recipe')) return;
+  const recipe = e.target.value ? recipes.find(r => r.id === e.target.value) : null;
+  if (recipe && recipe.theme) blk.querySelector('.plan-theme').value = recipe.theme;
+  blk.querySelector('.plan-chips').innerHTML = planChips(recipe);
+  blk.querySelector('.plan-ready-cell').innerHTML = planReadinessBadge(recipe);
+  const ing = blk.querySelector('.day-ingredients');
+  ing.innerHTML = planIngredientsHtml(recipe);
+  ing.hidden = true;
+});
+
+async function gotoWeek(delta) {
+  currentWeekStart = delta === 0 ? mondayOf(new Date()) : addDays(currentWeekStart, delta);
+  await loadPlan();
+  await refreshGroceryNames();
+  renderSuggestions();
+}
+document.getElementById('week-prev').addEventListener('click', () => gotoWeek(-7));
+document.getElementById('week-next').addEventListener('click', () => gotoWeek(7));
+document.getElementById('week-today').addEventListener('click', () => gotoWeek(0));
 
 // ================= GROCERY LIST =================
 async function loadGroceryExtras() {
@@ -728,12 +1387,36 @@ async function loadGroceryDismissed() {
   groceryDismissed = data;
 }
 
+// Refresh the set of item names on this week's grocery list, then re-render the
+// views that show "pending" so added items stop being offered.
+async function refreshGroceryNames() {
+  try {
+    const { data } = await sb.from('grocery_extra_items')
+      .select('item_name').eq('week_start_date', fmtDate(currentWeekStart));
+    groceryNames = new Set((data || []).map(e => (e.item_name || '').toLowerCase()));
+  } catch (e) { /* keep prior set on error */ }
+  updateCartBadge();
+}
+function updateCartBadge() {
+  const el = document.getElementById('cart-count');
+  if (!el) return;
+  const n = groceryNames.size;
+  el.textContent = n;
+  el.classList.toggle('show', n > 0);
+}
+document.getElementById('cart-jump').addEventListener('click', () =>
+  document.querySelector('.tab-btn[data-tab="grocery"]').click());
+function rerenderPending() {
+  if (recipes.length) renderSuggestions();
+  if (planRows !== undefined && document.getElementById('panel-plan').classList.contains('active')) renderPlan();
+}
+
 document.getElementById('btn-add-extra').addEventListener('click', async () => {
   const nameEl = document.getElementById('extra-item-name');
   const notesEl = document.getElementById('extra-item-notes');
   const name = nameEl.value.trim();
   if (!name) return;
-  const notes = notesEl.value.trim() || null;
+  const notes = gNote('on_list', notesEl.value.trim());
   try {
     const { error } = await sb.from('grocery_extra_items').insert({
       week_start_date: fmtDate(currentWeekStart), item_name: name, notes
@@ -742,6 +1425,7 @@ document.getElementById('btn-add-extra').addEventListener('click', async () => {
     nameEl.value = '';
     notesEl.value = '';
     await renderGrocery();
+    rerenderPending();
   } catch (e) { setStatus('grocery-status', 'Add failed: ' + e.message, true); }
 });
 window.deleteGroceryExtra = async (id) => {
@@ -749,6 +1433,7 @@ window.deleteGroceryExtra = async (id) => {
     const { error } = await sb.from('grocery_extra_items').delete().eq('id', id);
     if (error) throw error;
     await renderGrocery();
+    rerenderPending();
   } catch (e) { setStatus('grocery-status', 'Delete failed: ' + e.message, true); }
 };
 window.dismissGroceryItem = async (key) => {
@@ -769,207 +1454,324 @@ window.restoreGroceryItem = async (key) => {
   } catch (e) { setStatus('grocery-status', 'Failed to restore: ' + e.message, true); }
 };
 
-// cache of the last computed grocery data, so checkbox toggles can re-render without refetching
-let lastGroceryData = null;
+// ---- Grocery shopping lifecycle (status stored in the item's notes) ----
+const GROCERY_LABEL = { on_list: 'On the list', ordered: 'Ordered', pending_pickup: 'Pending pickup' };
+const GROCERY_NEXT = { on_list: 'ordered', ordered: 'pending_pickup', pending_pickup: null };
+const GROCERY_NEXT_LABEL = { on_list: 'Mark ordered', ordered: 'Mark pending pickup' };
+const GROCERY_BADGE = { on_list: 'badge-pending', ordered: 'badge-OK', pending_pickup: 'badge-LOW' };
+function parseGNote(notes) {
+  const m = (notes || '').match(/^\[(\w+)\]\s*([\s\S]*)$/);
+  return (m && GROCERY_LABEL[m[1]]) ? { status: m[1], text: m[2] } : { status: 'on_list', text: notes || '' };
+}
+function gNote(status, text) { return `[${status}]${text ? ' ' + text : ''}`; }
+function aisleOf(name) {
+  const s = stockItems.find(x => (x.name || '').toLowerCase() === (name || '').toLowerCase());
+  return s ? s.category : 'household_other';
+}
+// This week's planned-meal needs (stock names) not already on the list.
+function mealPlanNeedsNotOnList() {
+  const names = new Set();
+  planRows.filter(r => r.recipe_id).map(r => recipes.find(x => x.id === r.recipe_id)).filter(Boolean)
+    .forEach(r => planBuyable(r).forEach(it => names.add(it.stockName || it.name)));
+  return [...names];
+}
+
+const ORDER_PROMPT = "Launch GalleyQuest";
+
+// The step-by-step guide at the top of the grocery tab. Shows the next action
+// based on where the list is in the on_list -> ordered -> pending_pickup flow.
+function groceryWorkflowHtml(counts, needCount, total) {
+  const status = `<div class="wf-status"><b>${counts.on_list}</b> on the list · <b>${counts.ordered}</b> ordered · <b>${counts.pending_pickup}</b> pending pickup</div>`;
+  let step = '';
+  if (counts.on_list > 0) {
+    step = `<div class="wf-step">
+      <div class="wf-head">Next: order your groceries</div>
+      <div class="wf-opt">🤖 <b>Let Claude order it</b> — in Claude Desktop, say <span class="wf-say">"Launch GalleyQuest"</span><button class="copy-icon" data-action="copy-prompt" title="Copy" aria-label="Copy">📋</button></div>
+      <div class="wf-sub">Claude opens your Chrome, fills your H-E-B Copperas Cove cart, and marks these ordered; you just review &amp; pay.</div>
+      <div class="wf-opt">✍️ <b>Ordered it yourself?</b> <button class="ghost" data-action="all-ordered">Mark all ordered</button></div>
+    </div>`;
+  } else if (counts.ordered > 0) {
+    step = `<div class="wf-step">
+      <div class="wf-head">Next: schedule your pickup</div>
+      <div class="wf-opt">Picked a pickup slot on H-E-B? <button class="ghost" data-action="all-pending">Mark all pending pickup</button></div>
+    </div>`;
+  } else if (counts.pending_pickup > 0) {
+    step = `<div class="wf-step">
+      <div class="wf-head">Next: pick up &amp; restock</div>
+      <div class="wf-opt">Got your groceries? <button class="primary" data-action="picked-up-all">✅ Picked up — restock pantry</button></div>
+    </div>`;
+  }
+  const addNeeds = needCount
+    ? `<div class="wf-opt small"><b>${needCount}</b> item${needCount === 1 ? '' : 's'} for this week's meals ${needCount === 1 ? "isn't" : "aren't"} on the list yet. <button class="primary" data-action="add-needs">+ Add ${needCount === 1 ? 'it' : 'them'}</button></div>`
+    : '';
+  return `<div class="grocery-workflow">${total ? status : ''}${step}${addNeeds}</div>`;
+}
+
+// Aisles that spoil: the most weeks ahead of the meal it's sensible to buy them.
+const PERISHABLE_MAX_WEEKS = { produce: 1, bakery: 1, deli_prepared: 1, meat_seafood: 2, dairy_eggs: 2 };
+
+// Add every not-in-stock ingredient for the planned meals across `horizon` weeks
+// (1/2/3 or 'all') to this week's cart. Perishables needed too far out are HELD
+// (not added) with a warning so they don't spoil before the meal.
+async function addPlannedToCart(horizon) {
+  const weekStr = fmtDate(currentWeekStart);
+  let q = sb.from('meal_plan').select('week_start_date, recipe_id');
+  if (horizon === 'all') q = q.gte('week_start_date', weekStr);
+  else {
+    const dates = [];
+    for (let i = 0; i < horizon; i++) dates.push(fmtDate(addDays(currentWeekStart, i * 7)));
+    q = q.in('week_start_date', dates);
+  }
+  let data;
+  try { const res = await q; if (res.error) throw res.error; data = res.data || []; }
+  catch (e) { setStatus('grocery-status', 'Failed: ' + e.message, true); return; }
+
+  const catByName = Object.fromEntries(stockItems.map(s => [s.name.toLowerCase(), s.category]));
+  const wkIndex = d => Math.max(0, Math.round((new Date(d + 'T00:00:00') - currentWeekStart) / (7 * 864e5)));
+  const need = {}; // grocery name -> earliest #weeks until the meal that needs it
+  data.forEach(row => {
+    if (!row.recipe_id) return;
+    const recipe = recipes.find(r => r.id === row.recipe_id);
+    if (!recipe) return;
+    const wk = wkIndex(row.week_start_date);
+    planBuyable(recipe).forEach(it => {
+      const nm = it.stockName || it.name;
+      if (need[nm] === undefined || wk < need[nm]) need[nm] = wk;
+    });
+  });
+
+  const toAdd = [], held = [];
+  Object.keys(need).forEach(nm => {
+    const max = PERISHABLE_MAX_WEEKS[catByName[nm.toLowerCase()]];
+    if (max !== undefined && need[nm] > max) held.push({ nm, wk: need[nm] });
+    else if (!groceryNames.has(nm.toLowerCase())) toAdd.push(nm);
+  });
+
+  try {
+    if (toAdd.length) {
+      const rows = toAdd.map(nm => ({ week_start_date: weekStr, item_name: nm, notes: gNote('on_list', 'planned meals') }));
+      const res = await sb.from('grocery_extra_items').insert(rows);
+      if (res.error) throw res.error;
+    }
+  } catch (e) { setStatus('grocery-status', 'Add failed: ' + e.message, true); return; }
+
+  await renderGrocery();
+  if (recipes.length) renderSuggestions();
+
+  const warn = document.getElementById('grocery-warning');
+  if (held.length) {
+    const list = held.sort((a, b) => a.wk - b.wk).map(h => `${h.nm} (needed wk ${h.wk + 1})`).join(', ');
+    warn.innerHTML = `⚠ <b>Held back ${held.length} perishable item${held.length === 1 ? '' : 's'}</b> — buy these closer to the meal so they don't spoil: ${escHtml(list)}`;
+    warn.hidden = false;
+  } else { warn.hidden = true; warn.innerHTML = ''; }
+  setStatus('grocery-status', `Added ${toAdd.length} item${toAdd.length === 1 ? '' : 's'} from planned meals.`);
+}
+document.querySelector('.plan-add-row').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-horizon]');
+  if (!b) return;
+  addPlannedToCart(b.dataset.horizon === 'all' ? 'all' : parseInt(b.dataset.horizon));
+});
 
 async function renderGrocery() {
-  const container = document.getElementById('grocery-content');
   try {
     await loadGroceryExtras();
-    await loadGroceryDismissed();
-    const dismissedKeySet = new Set(groceryDismissed.map(d => d.item_key));
-
-    const recipeIds = [...new Set(planRows.filter(r => r.recipe_id).map(r => r.recipe_id))];
-    let ingredientRows = [];
-    if (recipeIds.length) {
-      const { data, error } = await sb.from('recipe_ingredients')
-        .select('ingredient_name, quantity, stock_item_id, recipe:recipes(name)')
-        .in('recipe_id', recipeIds);
-      if (error) throw error;
-      ingredientRows = data;
-    }
-
-    const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
-
-    // sectioned needs, keyed by stock_item_id when tracked
-    const bySectionMap = new Map(); // key -> {section, name, status, reasons:[]}
-    const untracked = []; // recipe ingredients with no stock link
-    const seenUntracked = new Set();
-
-    ingredientRows.forEach(row => {
-      const recipeName = row.recipe ? row.recipe.name : null;
-      if (row.stock_item_id) {
-        const s = stockById[row.stock_item_id];
-        if (!s) return;
-        if (s.status === 'OK') return; // hide OK, only show what's actually needed
-        const key = 'stock:' + s.id;
-        if (!bySectionMap.has(key)) {
-          bySectionMap.set(key, { key, section: s.category, name: s.name, status: s.status, reasons: [] });
-        }
-        if (recipeName) bySectionMap.get(key).reasons.push(recipeName);
-      } else {
-        const uKey = 'untracked:' + row.ingredient_name.toLowerCase();
-        if (!seenUntracked.has(uKey)) {
-          seenUntracked.add(uKey);
-          untracked.push({ key: uKey, name: row.ingredient_name, quantity: row.quantity, reasons: recipeName ? [recipeName] : [] });
-        } else {
-          const existing = untracked.find(u => u.key === uKey);
-          if (recipeName && !existing.reasons.includes(recipeName)) existing.reasons.push(recipeName);
-        }
-      }
-    });
-
-    // any stock item that's LOW/OUT, regardless of this week's recipes
-    stockItems.forEach(s => {
-      if (s.status !== 'LOW' && s.status !== 'OUT') return;
-      const key = 'stock:' + s.id;
-      if (!bySectionMap.has(key)) {
-        bySectionMap.set(key, { key, section: s.category, name: s.name, status: s.status, reasons: [] });
-      }
-    });
-
-    const extras = groceryExtras.map(e => ({ key: 'extra:' + e.id, id: e.id, name: e.item_name, notes: e.notes }));
-
-    // split into active (shown, actionable) vs dismissed (removed, restorable)
-    const allSectionItems = [...bySectionMap.values()];
-    const activeSectionItems = allSectionItems.filter(it => !dismissedKeySet.has(it.key));
-    const dismissedSectionItems = allSectionItems.filter(it => dismissedKeySet.has(it.key));
-    const activeUntracked = untracked.filter(it => !dismissedKeySet.has(it.key));
-    const dismissedUntracked = untracked.filter(it => dismissedKeySet.has(it.key));
-
-    lastGroceryData = {
-      activeSectionItems, dismissedSectionItems,
-      activeUntracked, dismissedUntracked,
-      extras
-    };
+    groceryNames = new Set(groceryExtras.map(e => (e.item_name || '').toLowerCase()));
+    updateCartBadge();
     renderGroceryDom();
   } catch (e) { setStatus('grocery-status', 'Failed to load: ' + e.message, true); }
 }
 
+function groceryItemRow(it) {
+  const badge = `<span class="badge ${GROCERY_BADGE[it.status] || 'badge-pending'}">${GROCERY_LABEL[it.status]}</span>`;
+  const advance = it.status === 'pending_pickup'
+    ? `<button class="ghost" data-action="picked-up" data-id="${escAttr(it.id)}">✅ Picked up</button>`
+    : `<button class="ghost" data-action="advance" data-id="${escAttr(it.id)}">${GROCERY_NEXT_LABEL[it.status]}</button>`;
+  return `<div class="grocery-row">
+    <span class="card-title">${escHtml(it.name)}${it.text ? ` <span class="small">(${escHtml(it.text)})</span>` : ''}</span>
+    ${badge}
+    <span class="gr-spacer"></span>
+    ${advance}
+    <button class="ghost danger" data-action="delete-extra" data-id="${escAttr(it.id)}">Remove</button>
+  </div>`;
+}
+
 function renderGroceryDom() {
-  if (!lastGroceryData) return;
-  const { activeSectionItems, dismissedSectionItems, activeUntracked, dismissedUntracked, extras } = lastGroceryData;
   const container = document.getElementById('grocery-content');
+  const items = groceryExtras.map(e => {
+    const p = parseGNote(e.notes);
+    return { id: e.id, name: e.item_name, status: p.status, text: p.text, aisle: aisleOf(e.item_name) };
+  });
+  const counts = { on_list: 0, ordered: 0, pending_pickup: 0 };
+  items.forEach(it => { counts[it.status] = (counts[it.status] || 0) + 1; });
+  const needCount = mealPlanNeedsNotOnList().length;
 
-  const activeCount = activeSectionItems.length + activeUntracked.length + extras.length;
-  const dismissedCount = dismissedSectionItems.length + dismissedUntracked.length;
+  let html = groceryWorkflowHtml(counts, needCount, items.length);
 
-  // Grocery card helper: face button (name+badge) toggles details; the
-  // dismiss checkbox / action buttons are SIBLINGS of the face, never inside
-  // it. Canonical keys feed state, data-card-id, and the injective hex
-  // details id (council rounds 3-5).
-  const groceryCard = (key, name, badgeHtml, detailsHtml, controlHtml) => {
-    const detailsId = `grocery-card-details-${hexId(key)}`;
-    return `<div class="card collapsible grocery-card" data-card-id="${escAttr(key)}">
-      <div class="grocery-card-row">
-        ${controlHtml}
-        <button type="button" class="card-face" aria-expanded="false" aria-controls="${escAttr(detailsId)}">
-          <span class="card-title">${escHtml(name)}</span>
-          ${badgeHtml}
-          <span class="chev" aria-hidden="true"></span>
-        </button>
-      </div>
-      <div class="card-details" id="${escAttr(detailsId)}">${detailsHtml}</div>
-    </div>`;
-  };
-  const dismissBox = (key, name) =>
-    `<input type="checkbox" data-action="dismiss" data-key="${escAttr(key)}" aria-label="${escAttr('Dismiss ' + name)}">`;
-
-  let html = '';
-
-  if (!activeCount) {
-    html += `<div class="grocery-empty"><div class="big">✓</div>Nothing needed right now.<br>Nice job staying stocked.</div>`;
+  if (!items.length) {
+    html += `<div class="grocery-empty"><div class="big">🛒</div>Nothing on your list yet.<br>Add items from Cook Now, or pull in this week's meal needs above.</div>`;
   } else {
     SECTIONS.forEach(sec => {
-      const items = activeSectionItems.filter(it => it.section === sec.key).sort((a, b) => a.name.localeCompare(b.name));
-      if (!items.length) return;
+      const secItems = items.filter(it => it.aisle === sec.key).sort((a, b) => a.name.localeCompare(b.name));
+      if (!secItems.length) return;
       html += `<div class="grocery-section">
-        <div class="grocery-section-header"><span class="sec-icon">${sec.icon}</span><h4>${sec.label}</h4><span class="count">${items.length}</span></div>
-        <div class="card-grid">
-        ${items.map(it => groceryCard(
-          it.key, it.name,
-          safeStatus(it.status) ? `<span class="badge badge-${safeStatus(it.status)}">${safeStatus(it.status)}</span>` : `<span class="small">${escHtml(it.status || '')}</span>`,
-          it.reasons.length ? `<div class="item-meta">${escHtml('needed for ' + it.reasons.join(', '))}</div>` : '<p class="small">No linked recipes this week.</p>',
-          dismissBox(it.key, it.name)
-        )).join('')}
-        </div>
+        <div class="grocery-section-header"><span class="sec-icon">${sec.icon}</span><h4>${sec.label}</h4><span class="count">${secItems.length}</span></div>
+        <div class="grocery-list">${secItems.map(groceryItemRow).join('')}</div>
       </div>`;
     });
-
-    if (activeUntracked.length) {
-      html += `<div class="grocery-section">
-        <div class="grocery-section-header"><span class="sec-icon">❔</span><h4>Not tracked in Stock</h4><span class="count">${activeUntracked.length}</span></div>
-        <div class="card-grid">
-        ${activeUntracked.map(it => groceryCard(
-          it.key, it.name + (it.quantity ? ' — ' + it.quantity : ''), '',
-          it.reasons.length ? `<div class="item-meta">${escHtml('needed for ' + it.reasons.join(', '))}</div>` : '<p class="small">No linked recipes this week.</p>',
-          dismissBox(it.key, it.name)
-        )).join('')}
-        </div>
-      </div>`;
-    }
-
-    if (extras.length) {
-      html += `<div class="grocery-section">
-        <div class="grocery-section-header"><span class="sec-icon">➕</span><h4>Added by you</h4><span class="count">${extras.length}</span></div>
-        <div class="card-grid">
-        ${extras.map(it => groceryCard(
-          'extra:' + it.id, it.name, '',
-          it.notes ? `<div class="item-meta">${escHtml(it.notes)}</div>` : '<p class="small">No notes.</p>',
-          `<button class="ghost danger" data-action="delete-extra" data-id="${escAttr(it.id)}">Remove</button>`
-        )).join('')}
-        </div>
-      </div>`;
-    }
   }
-
-  if (dismissedCount) {
-    const allDismissed = [...dismissedSectionItems, ...dismissedUntracked];
-    html += `<div class="grocery-section">
-      <div class="grocery-section-header"><span class="sec-icon">✓</span><h4>Removed this week</h4><span class="count">${dismissedCount}</span></div>
-      <div class="card-grid">
-      ${allDismissed.map(it => groceryCard(
-        it.key, it.name, '<span class="small">dismissed</span>',
-        '<p class="small">Dismissed for this week.</p>',
-        `<button class="ghost" data-action="restore" data-key="${escAttr(it.key)}">Restore</button>`
-      )).join('')}
-      </div>
-    </div>`;
-  }
-
   container.innerHTML = html;
-  wireCardGrid('grocery-content', 'grocery');
   wireGroceryActions('grocery-content');
-  applyCardState('grocery-content', 'grocery');
 }
+
+// Flip matching pantry items to In stock (OK) when their groceries are picked up.
+async function resolvePantry(names) {
+  const want = new Set(names.map(n => (n || '').toLowerCase()));
+  const ids = stockItems.filter(s => want.has((s.name || '').toLowerCase()) && s.status !== 'OK').map(s => s.id);
+  if (ids.length) {
+    await sb.from('stock_items').update({ status: 'OK', updated_at: new Date().toISOString() }).in('id', ids);
+  }
+  return ids.length;
+}
+window.advanceGroceryItem = async (id) => {
+  const e = groceryExtras.find(x => x.id === id); if (!e) return;
+  const { status, text } = parseGNote(e.notes);
+  const next = GROCERY_NEXT[status]; if (!next) return;
+  try {
+    const { error } = await sb.from('grocery_extra_items').update({ notes: gNote(next, text) }).eq('id', id);
+    if (error) throw error;
+    await renderGrocery();
+  } catch (err) { setStatus('grocery-status', 'Update failed: ' + err.message, true); }
+};
+window.markAllOrdered = async () => {
+  try {
+    for (const e of groceryExtras) {
+      const { status, text } = parseGNote(e.notes);
+      if (status === 'on_list') await sb.from('grocery_extra_items').update({ notes: gNote('ordered', text) }).eq('id', e.id);
+    }
+    await renderGrocery();
+    setStatus('grocery-status', 'Everything on the list marked ordered.');
+  } catch (err) { setStatus('grocery-status', 'Update failed: ' + err.message, true); }
+};
+window.pickedUpGroceryItem = async (id) => {
+  const e = groceryExtras.find(x => x.id === id); if (!e) return;
+  try {
+    const n = await resolvePantry([e.item_name]);
+    await sb.from('grocery_extra_items').delete().eq('id', id);
+    await loadStock(); await renderGrocery(); rerenderPending();
+    setStatus('grocery-status', `${e.item_name} picked up${n ? ' — pantry updated' : ''}.`);
+  } catch (err) { setStatus('grocery-status', 'Failed: ' + err.message, true); }
+};
+window.pickedUpAllGrocery = async () => {
+  const pend = groceryExtras.filter(e => parseGNote(e.notes).status === 'pending_pickup');
+  if (!pend.length) return;
+  try {
+    const n = await resolvePantry(pend.map(e => e.item_name));
+    await sb.from('grocery_extra_items').delete().in('id', pend.map(e => e.id));
+    await loadStock(); await renderGrocery(); rerenderPending();
+    setStatus('grocery-status', `${pend.length} items picked up — ${n} pantry item${n === 1 ? '' : 's'} back in stock.`);
+  } catch (err) { setStatus('grocery-status', 'Failed: ' + err.message, true); }
+};
+window.markAllPending = async () => {
+  try {
+    for (const e of groceryExtras) {
+      const { status, text } = parseGNote(e.notes);
+      if (status === 'ordered') await sb.from('grocery_extra_items').update({ notes: gNote('pending_pickup', text) }).eq('id', e.id);
+    }
+    await renderGrocery();
+    setStatus('grocery-status', 'Marked pending pickup.');
+  } catch (err) { setStatus('grocery-status', 'Update failed: ' + err.message, true); }
+};
+window.copyOrderPrompt = () => {
+  navigator.clipboard.writeText(ORDER_PROMPT).then(
+    () => setStatus('grocery-status', 'Prompt copied — paste it into Claude Desktop.'),
+    () => setStatus('grocery-status', 'Copy failed — select the text and copy manually.', true)
+  );
+};
+window.addWeekNeeds = async () => { await addWeekMissingToGrocery(); await renderGrocery(); };
 
 // ================= COOK NOW (stock-based suggestions) =================
 document.getElementById('sugg-ready-only').addEventListener('change', renderSuggestions);
+document.getElementById('sugg-search').addEventListener('input', renderSuggestions);
+document.getElementById('sugg-filter-category').addEventListener('input', renderSuggestions);
+document.getElementById('sugg-filter-cuisine').addEventListener('input', renderSuggestions);
+document.getElementById('sugg-collapse-all').addEventListener('click', () => collapseAll('suggestions-list', 'suggestions'));
+
+// Ingredients treated as always available (never missing, never on grocery).
+const ALWAYS_ON_HAND = new Set(['water', 'ice', 'cold water', 'warm water', 'hot water',
+  'boiling water', 'tap water', 'ice water', 'ice cube', 'cold running water']);
+function isAlwaysOnHand(name) {
+  const n = (name || '').toLowerCase().replace(/\([^)]*\)/g, '').split(',')[0].trim();
+  return ALWAYS_ON_HAND.has(n);
+}
+
+// Interchangeable ingredients ("AKA"): if a recipe needs one and you have any
+// other member of its group in stock, you're covered. Names = stock_items.name.
+const SUBSTITUTES = [
+  ['Lard', 'Shortening'],
+  ['Vegetable oil', 'Sunflower oil'],
+  ['Corn starch', 'Potato starch'],
+];
+const SUB_GROUP = {};
+SUBSTITUTES.forEach(g => g.forEach(n => { SUB_GROUP[n.toLowerCase()] = g; }));
+
+// If `item` isn't itself OK, return an in-stock (OK/LOW) interchangeable substitute, else null.
+function availableSubstitute(item, stockById) {
+  if (!item) return null;
+  const group = SUB_GROUP[(item.name || '').toLowerCase()];
+  if (!group) return null;
+  const all = Object.values(stockById);
+  let best = null;
+  group.forEach(nm => {
+    if (nm.toLowerCase() === item.name.toLowerCase()) return;
+    const cand = all.find(x => (x.name || '').toLowerCase() === nm.toLowerCase());
+    if (cand && (cand.status === 'OK' || cand.status === 'LOW') && (!best || cand.status === 'OK')) best = cand;
+  });
+  return best;
+}
 
 function computeReadiness(recipe, stockById) {
   const ings = recipe.ingredients || [];
   let ok = 0, tracked = 0;
   const missing = [];
-  ings.forEach(ing => {
+  const items = ings.map(ing => {
+    if (isAlwaysOnHand(ing.ingredient_name)) {
+      return { name: ing.ingredient_name, quantity: ing.quantity, status: 'OK', stockName: null, always: true, pending: false };
+    }
+    const s = ing.stock_item_id ? stockById[ing.stock_item_id] : null;
+    let status = ing.stock_item_id ? (s ? s.status : null) : null;
+    let via = null;
     if (ing.stock_item_id) {
       tracked++;
-      const s = stockById[ing.stock_item_id];
-      if (s && s.status === 'OK') { ok++; return; }
-      missing.push({ name: ing.ingredient_name, status: s ? s.status : null });
+      if (status !== 'OK') {
+        const sub = availableSubstitute(s, stockById);
+        if (sub) { via = sub.name; status = 'OK'; }  // covered by an interchangeable item on hand
+      }
+      if (status === 'OK') ok++;
+      else missing.push({ name: ing.ingredient_name, status });
     } else {
       missing.push({ name: ing.ingredient_name, status: null });
     }
+    const shopName = (s ? s.name : ing.ingredient_name) || '';
+    const pending = status !== 'OK' && groceryNames.has(shopName.toLowerCase());
+    return { name: ing.ingredient_name, quantity: ing.quantity, status, stockName: s ? s.name : null, pending, via };
   });
   const score = tracked > 0 ? ok / tracked : null;
-  return { ok, tracked, total: ings.length, missing, score };
+  return { ok, tracked, total: ings.length, missing, items, score };
 }
 
 function renderSuggestions() {
   const container = document.getElementById('suggestions-list');
   const readyOnly = document.getElementById('sugg-ready-only').checked;
+  const q = document.getElementById('sugg-search').value.toLowerCase();
+  const catF = document.getElementById('sugg-filter-category').value;
+  const cuiF = document.getElementById('sugg-filter-cuisine').value;
   if (!recipes.length) { container.innerHTML = '<div class="empty">No recipes yet.</div>'; return; }
   const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
-  let rows = recipes.map(r => ({ recipe: r, readiness: computeReadiness(r, stockById) }));
+  let rows = recipes.filter(r =>
+    (!q || r.name.toLowerCase().includes(q) || (r.tax.tags || []).some(t => t.toLowerCase().includes(q))) &&
+    (!catF || r.tax.category === catF) &&
+    (!cuiF || r.tax.cuisine === cuiF)
+  ).map(r => ({ recipe: r, readiness: computeReadiness(r, stockById) }));
 
   if (readyOnly) {
     rows = rows.filter(row => row.readiness.tracked > 0 && row.readiness.ok === row.readiness.tracked);
@@ -991,35 +1793,67 @@ function renderSuggestions() {
   container.classList.add('card-grid');
   container.innerHTML = rows.map(({ recipe: r, readiness }) => {
     const pct = readiness.score === null ? 0 : Math.round(readiness.score * 100);
-    const label = readiness.tracked > 0
-      ? `${readiness.ok} of ${readiness.tracked} tracked ingredients in stock`
-      : 'No tracked ingredients — link ingredients to stock items to see readiness';
-    const missingHtml = readiness.missing.map(m => {
-      const st = safeStatus(m.status);   // runtime allowlist
-      const badge = st
-        ? `<span class="badge badge-${st}">${st}</span>`
-        : (m.status ? `<span class="small">${escHtml(m.status)}</span>` : '<span class="small">not tracked</span>');
-      return `<li>${escHtml(m.name)} ${badge}</li>`;
+    // addable = OUT/LOW and NOT already on the grocery list; pending = on the list.
+    const addable = readiness.items.filter(it => (it.status === 'OUT' || it.status === 'LOW') && !it.pending).length;
+    const pendingCount = readiness.items.filter(it => it.pending).length;
+    const allSet = addable === 0 && pendingCount === 0;
+    const summary = allSet ? 'You have everything in the pantry'
+      : addable === 0 ? 'Everything you need is on your grocery list'
+      : `${addable} item${addable === 1 ? '' : 's'} to buy`;
+    const itemsHtml = readiness.items.map(it => {
+      const badge = it.pending ? '<span class="badge badge-pending">🛒 on list</span>'
+        : (statusBadge(it.status) || '<span class="small">not tracked</span>');
+      const qty = it.quantity ? ` <span class="small">${escHtml(it.quantity)}</span>` : '';
+      const via = it.via ? ` <span class="small aka-note">↔ using ${escHtml(it.via)}</span>` : '';
+      return `<li><span class="grow">${escHtml(it.name)}${qty}${via}</span> ${badge}</li>`;
     }).join('');
     const detailsId = `suggestions-card-details-${r.id}`;
     return `
       <div class="card collapsible" data-card-id="${escAttr(r.id)}">
         <button type="button" class="card-face" aria-expanded="false" aria-controls="${escAttr(detailsId)}">
           <span class="card-title">${escHtml(r.name)}</span>
-          ${r.theme ? `<span class="theme-tag">${escHtml(r.theme)}</span>` : ''}
+          ${r.tax.category ? `<span class="cat-tag">${escHtml(r.tax.category)}</span>` : ''}
+          ${r.tax.cuisine ? `<span class="cuisine-tag">${escHtml(r.tax.cuisine)}</span>` : ''}
           <span class="readiness-bar"><span class="readiness-fill" style="width:${pct}%"></span></span>
-          <span class="readiness-label">${escHtml(label)}</span>
+          <span class="readiness-label ${allSet ? 'all-in' : ''}">${escHtml(summary)}</span>
           <span class="chev" aria-hidden="true"></span>
         </button>
         <div class="card-details" id="${escAttr(detailsId)}">
-          ${missingHtml ? `<ul class="missing-list">${missingHtml}</ul>` : '<p class="small">Everything tracked is in stock.</p>'}
+          <ul class="missing-list">${itemsHtml}</ul>
+          ${addable > 0
+            ? `<button class="ghost add-grocery" data-action="add-grocery" data-id="${escAttr(r.id)}">+ Add ${addable} to cart</button>`
+            : (pendingCount > 0 ? '<p class="small">Everything you need is on your grocery list.</p>'
+                                : '<p class="small all-in">Ready to cook — you have everything.</p>')}
         </div>
       </div>
     `;
   }).join('');
   wireCardGrid('suggestions-list', 'suggestions');
+  wireCardActions('suggestions-list', { 'add-grocery': id => window.addMissingToGrocery(id) });
   applyCardState('suggestions-list', 'suggestions');
 }
+
+// One-click: add a recipe's not-in-stock ingredients to this week's grocery list.
+window.addMissingToGrocery = async (recipeId) => {
+  const r = recipes.find(x => x.id === recipeId);
+  if (!r) return;
+  const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
+  const { items } = computeReadiness(r, stockById);
+  const names = [...new Set(items
+    .filter(it => (it.status === 'OUT' || it.status === 'LOW') && !it.pending)
+    .map(it => it.stockName || it.name))];
+  if (!names.length) return;
+  const weekStr = fmtDate(currentWeekStart);
+  try {
+    const rows = names.map(n => ({ week_start_date: weekStr, item_name: n, notes: gNote('on_list', 'for ' + r.name) }));
+    const { error } = await sb.from('grocery_extra_items').insert(rows);
+    if (error) throw error;
+    await refreshGroceryNames();
+    rerenderPending();
+    setStatus('suggestions-status',
+      `Added ${rows.length} item${rows.length === 1 ? '' : 's'} to this week's grocery list.`, false);
+  } catch (e) { setStatus('suggestions-status', 'Add failed: ' + e.message, true); }
+};
 
 // ================= modal helpers =================
 function openModal(id) { document.getElementById(id).classList.add('active'); }
@@ -1029,12 +1863,13 @@ function closeModal(id) { document.getElementById(id).classList.remove('active')
 async function init() {
   populateSelect(document.getElementById('f-stock-category'), CATEGORIES, CATEGORY_LABELS);
   populateSelect(document.getElementById('stock-filter-category'), CATEGORIES, CATEGORY_LABELS);
-  document.getElementById('stock-filter-category').insertAdjacentHTML('afterbegin', '<option value="">All sections</option>');
+  document.getElementById('stock-filter-category').insertAdjacentHTML('afterbegin', '<option value="">All aisles</option>');
+  document.getElementById('stock-filter-category').value = '';   // default to All sections
   document.getElementById('stock-filter-status').insertAdjacentHTML('beforeend',
     '<option value="OK">OK</option><option value="LOW">LOW</option><option value="OUT">OUT</option>');
   populateSelect(document.getElementById('f-recipe-theme'), [''].concat(THEMES), Object.fromEntries([['','(none)'],...THEMES.map(t=>[t,t])]));
-  document.getElementById('recipe-filter-theme').insertAdjacentHTML('beforeend',
-    THEMES.map(t => `<option value="${t}">${t}</option>`).join(''));
+  populateSelect(document.getElementById('f-recipe-cuisine'), [''].concat(CUISINES), Object.fromEntries([['','(none)'],...CUISINES.map(c=>[c,c])]));
+  // recipe category/cuisine filters are populated from live data in populateRecipeFilters()
 
   const connEl = document.getElementById('conn-status');
   try {
@@ -1051,7 +1886,9 @@ async function init() {
   await loadStock();
   await loadRecipes();
   await loadPlan();
+  await refreshGroceryNames();
   renderSuggestions();
+  restoreLastTab();
 }
 init();
 </script>
