@@ -2,6 +2,8 @@
 
 # 🍽️ GalleyQuest
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **A household pantry, recipe, and meal-planning app that answers the real daily question — _"what can I actually cook right now, and what do I need to buy?"_ — and then lets Claude do the shopping.**
 
 Track what's in your pantry, see every meal you can make from it, plan the week, and turn that plan into a smart, waste-aware grocery cart. It's a dependency-free static frontend backed by Supabase (Postgres) — no build step, no framework — with a pair of Claude workflows that capture your pantry by voice and fill your grocery cart for you.
@@ -181,6 +183,10 @@ _Recently shipped: first-run wizard, multiple meals per day (meal slots), receip
 ## Credits
 
 Forked from [`arentovey-lang/GalleyQuest`](https://github.com/arentovey-lang/GalleyQuest), which provided the original pantry/recipe/meal-plan foundation. This fork's enhancements — the efficiency lens, smart multi-week grocery, AI-native workflows, and UX overhaul — were built by [@LimitedEnergyX](https://github.com/LimitedEnergyX) in collaboration with Claude Code.
+
+## License
+
+Released under the [MIT License](LICENSE) © 2026 Shawn Tovey and Aren Tovey — the original pantry/recipe/meal-plan foundation is Aren's; this fork's enhancements are Shawn's. Use it, fork it, point it at your own grocery store.
 
 ---
 
