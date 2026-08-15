@@ -8,7 +8,7 @@
 
 Track what's in your pantry, see every meal you can make from it, plan the week, and turn that plan into a smart, waste-aware grocery cart. It's a dependency-free static frontend backed by Supabase (Postgres) — no build step, no framework — with a pair of Claude workflows that capture your pantry by voice and fill your grocery cart for you.
 
-![GalleyQuest — Recipes with Cook Now](docs/screenshots/cook-now.png)
+![GalleyQuest — the Recipes tab: 262 recipes, each card showing on-hand readiness, ratings, and a computed efficiency score](docs/screenshots/recipes.png)
 
 ---
 
@@ -61,7 +61,13 @@ GalleyQuest began as a **small self-hosted pantry/recipe/meal-plan tracker** (fo
 ### 📖 Recipes — with 🔥 Cook Now
 262 recipes in a consistent, scannable card layout. Every card shows the same three rows — **name + on-hand ratio**, **category · cuisine**, and **ratings** — plus, when expanded, the full ingredient list with per-item OK/OUT status and one-click **add-missing-to-cart**. Rate what you've tried (1–5⭐) and read each recipe's computed 🌿 **efficiency** rating. Filter by category, cuisine, or search — flip **🌿 Efficient** for lean, pantry-friendly meals, or **🔥 Cook Now** to show only what you can make right now (**≥85% of tracked ingredients on hand**, most-ready first).
 
-![Recipes — with the Cook Now filter](docs/screenshots/cook-now-detail.png)
+Flip **🔥 Cook Now** and the list narrows to just what you can make right now:
+
+![Cook Now — only recipes with all or most ingredients in stock](docs/screenshots/cook-now.png)
+
+Expand any card for the full ingredient list with per-item status and one-click add-to-cart:
+
+![A recipe expanded — per-ingredient OK/OUT status and "Add N to cart"](docs/screenshots/cook-now-detail.png)
 
 ### 🥫 Stock
 Your pantry, grouped into real supermarket aisles. Each aisle header shows an at-a-glance roll-up (`7/74 in stock · 1 low`) and an ⏰ expiring flag.

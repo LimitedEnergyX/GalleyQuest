@@ -1,15 +1,19 @@
 # Screenshot shot list
 
-The README references these five images. Capture each at browser 100% zoom
-(the app already scales itself), scrolled to the top, and save with the exact
-filename below into this folder (`docs/screenshots/`).
+Fresh captures are produced with real Chrome (Playwright, `channel: chrome`) at a
+1360-wide viewport, `deviceScaleFactor: 2`, scrolled to the top, and content-cropped
+(clip height = min(viewport, actual content height)). Save with the exact filename
+below into this folder (`docs/screenshots/`).
 
-| Filename | Tab | What to show |
-|----------|-----|--------------|
-| `cook-now.png` | Cook Now | Filter bar + a few recipe cards with readiness bars and "N to buy" summaries. |
-| `stock.png` | Stock | The by-aisle view with the `7/74 in stock · 1 low` headers and the sticky column headers (Name · Uses · Aisle · Status · Expires · Qty). Expanding one aisle (e.g. Produce) to show the ⭐/⚠ Uses column + the ＋ cart button reads best. |
-| `recipes.png` | Recipes | The index-card grid filtered to one cuisine, showing the consistent 3-row cards (name + ratio / category · cuisine / rating + efficiency stars). |
-| `meal-plan.png` | Meal Plan | The weekly grid with column headers, a couple of days filled in, and the readiness badges. |
-| `grocery-cart.png` | Grocery Cart | The "Add missing from planned meals" horizon buttons and a populated list. Bonus if the perishable "held back" warning is visible. |
+| Filename | Tab / state | What to show |
+|----------|-------------|--------------|
+| `recipes.png` | Recipes (default grid) — **hero** | The 3-column card grid: name + on-hand ratio, category · cuisine, rating + efficiency stars. |
+| `cook-now.png` | Recipes → 🔥 Cook Now ON | The pressed toggle + the banner, filtered to recipes with ≥85% of ingredients in stock. |
+| `cook-now-detail.png` | Recipes, first card expanded | Full ingredient list with per-item ✓/OUT status and the "+ Add N to cart" button. |
+| `stock-overview.png` | Stock (aisles collapsed) | Food-only aisle roll-ups (`14/86 in stock`, `2 low`) — no household clutter. |
+| `stock.png` | Stock, Produce expanded | The Uses / Aisle / Status / Expires / Qty columns + the ＋ cart button. |
+| `meal-plan.png` | Meal Plan (a populated week) | The weekly grid: Slot/Theme/Recipe/Meal name/Notes/Status, days filled, readiness badges. |
+| `grocery-cart.png` | Grocery Cart (populated) | Aisle-grouped list, the "Add from planned meals" horizon buttons, and the "Let Claude order it" workflow box. |
 
-Recommended: ~1400px wide, PNG. Optional but nice: a hero/animated GIF as `docs/screenshots/hero.gif`.
+Note: Cook Now is now a **filter inside the Recipes tab**, not a separate tab. Stock
+is **food-only** (no household category). ~1360px wide @2x, PNG.
