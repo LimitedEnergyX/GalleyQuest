@@ -17,5 +17,5 @@ null
 # Secrets kept locally — NEVER commit (DB password, etc.).
 private.txt
 
-# Runtime log written by the local server task.
-scripts/serve.log
+# Runtime logs written by the local server task.
+scripts/*.log

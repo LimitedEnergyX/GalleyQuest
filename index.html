@@ -107,6 +107,9 @@
   .special-note { font-size: 12px; color: #a05a2c; margin: 5px 0; }
   .special-note.efficient { color: #3a7a3a; }
   #recipe-efficient.active { background: #eef6ee; border-color: #3a7a3a; color: #2e6a2e; }
+  #recipe-cooknow.active { background: #ffe4d1; border-color: #d1621e; color: #a2410f; box-shadow: inset 0 2px 4px rgba(160,60,10,.30); transform: translateY(1px); }
+  .cooknow-note { display:flex; align-items:center; gap:7px; background:#fff6ec; border:1px solid #f0c9a0; border-left:4px solid #d1621e; border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:13px; color:#8a4b12; }
+  .cooknow-note[hidden] { display:none; }
   .face-stars { color: #e6a817; font-size: 13px; letter-spacing: 1px; }
   .eff-badge { font-size: 11px; padding: 1px 6px; border-radius: 8px; }
   .eff-badge.high { background: #eef6ee; color: #3a7a3a; }
@@ -413,10 +416,9 @@ button.card-face:focus-visible {
 <p class="conn-status" id="conn-status">Connecting…</p>
 
 <div class="tabs">
-  <button class="tab-btn active" data-tab="suggestions">Cook Now</button>
+  <button class="tab-btn active" data-tab="recipes">Recipes</button>
   <button class="tab-btn" data-tab="plan">Meal Plan</button>
   <button class="tab-btn" data-tab="stock">Stock</button>
-  <button class="tab-btn" data-tab="recipes">Recipes</button>
   <button class="tab-btn" data-tab="grocery">Grocery Cart</button>
 </div>
 
@@ -467,17 +469,19 @@ button.card-face:focus-visible {
 </div>
 
 <!-- RECIPES PANEL -->
-<div class="panel" id="panel-recipes">
+<div class="panel active" id="panel-recipes">
   <div class="toolbar">
     <input type="search" id="recipe-search" placeholder="Search recipes…" style="min-width:150px">
     <select id="recipe-filter-category"><option value="">All categories</option></select>
     <select id="recipe-filter-cuisine"><option value="">All cuisines</option></select>
+    <button type="button" class="ghost" id="recipe-cooknow" title="Show only recipes you can make now — all or most ingredients on hand">🔥 Cook Now</button>
     <span style="flex:1"></span>
     <button type="button" class="ghost" id="recipe-efficient" title="Recipes that use mostly shared ingredients (few special-buy items)">🌿 Efficient</button>
     <button class="ghost" id="recipe-collapse-all">Collapse all</button>
     <button class="primary" id="btn-add-recipe">+ Add recipe</button>
   </div>
   <div class="status-msg" id="recipe-status"></div>
+  <div class="cooknow-note" id="cooknow-note" hidden>🔥 Showing recipes you can cook now — all or most ingredients in stock.</div>
   <div id="recipe-list"></div>
 </div>
 
@@ -537,20 +541,7 @@ button.card-face:focus-visible {
   <div id="grocery-content"></div>
 </div>
 
-<!-- SUGGESTIONS PANEL -->
-<div class="panel active" id="panel-suggestions">
-  <p class="small">What you can cook with what's in your pantry. Each recipe shows its full ingredient list and what's in stock — add anything you're missing to the grocery list in one click.</p>
-  <div class="toolbar">
-    <input type="search" id="sugg-search" placeholder="Search…" style="min-width:140px">
-    <select id="sugg-filter-category"><option value="">All categories</option></select>
-    <select id="sugg-filter-cuisine"><option value="">All cuisines</option></select>
-    <label class="toggle-row"><input type="checkbox" id="sugg-ready-only" style="width:auto"> Show Fully Stocked</label>
-    <span style="flex:1"></span>
-    <button class="ghost" id="sugg-collapse-all">Collapse all</button>
-  </div>
-  <div class="status-msg" id="suggestions-status"></div>
-  <div id="suggestions-list"></div>
-</div>
+<!-- Cook Now was merged into the Recipes tab (🔥 Cook Now filter). -->
 
 <!-- STOCK MODAL -->
 <!-- ONBOARDING (first run) -->
@@ -561,7 +552,7 @@ button.card-face:focus-visible {
     <p class="onboard-sub">Your pantry, recipes, and meal plan in one place.</p>
     <ul class="onboard-points">
       <li><b>🥫 Stock</b> — mark what you have, and the app knows what you can cook</li>
-      <li><b>🔥 Cook Now</b> — meals you can make right now, ranked by what's on hand</li>
+      <li><b>🍲 Recipes → 🔥 Cook Now</b> — filter to meals you can make right now from what's on hand</li>
       <li><b>📅 Meal Plan → 🛒 Cart</b> — plan the week, then let it build your grocery list</li>
     </ul>
     <p class="small">Best first step: stock your pantry so everything else lights up.</p>
@@ -633,7 +624,7 @@ const SECTIONS = [
   { key: 'condiments_spices', label: 'Condiments & Spices', icon: '🧂' },
   { key: 'snacks', label: 'Snacks', icon: '🍿' },
   { key: 'beverages', label: 'Beverages', icon: '🥤' },
-  { key: 'household_other', label: 'Household & Other', icon: '🧴' },
+  { key: 'other', label: 'Other', icon: '📦' },
 ];
 const CATEGORIES = SECTIONS.map(s => s.key);
 const CATEGORY_LABELS = Object.fromEntries(SECTIONS.map(s => [s.key, s.label]));
@@ -696,7 +687,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
     try { localStorage.setItem('gq-tab', btn.dataset.tab); } catch (e) { /* ignore */ }
     if (btn.dataset.tab === 'grocery') renderGrocery();
-    if (btn.dataset.tab === 'suggestions') renderSuggestions();
+    if (btn.dataset.tab === 'recipes') renderRecipes();
     if (btn.dataset.tab === 'stock') syncStockHeaderTop();
   });
 });
@@ -1041,7 +1032,7 @@ async function importPantryJson() {
         await sb.from('stock_items').update({ status, notes: note || existing.notes, updated_at: new Date().toISOString() }).eq('id', existing.id);
         updated++;
       } else {
-        const cat = SECTIONS.some(s => s.key === it.category) ? it.category : 'household_other';
+        const cat = SECTIONS.some(s => s.key === it.category) ? it.category : 'other';
         await sb.from('stock_items').insert({ name: targetName, category: cat, status, notes: note });
         added++;
       }
@@ -1155,8 +1146,6 @@ function populateRecipeFilters() {
   };
   fill('recipe-filter-category', 'All categories', uniq('category'));
   fill('recipe-filter-cuisine', 'All cuisines', uniq('cuisine'));
-  fill('sugg-filter-category', 'All categories', uniq('category'));
-  fill('sugg-filter-cuisine', 'All cuisines', uniq('cuisine'));
 }
 
 async function loadRecipes() {
@@ -1172,34 +1161,49 @@ async function loadRecipes() {
 }
 
 function renderRecipes() {
+  const cnNote = document.getElementById('cooknow-note');
+  if (cnNote) cnNote.hidden = !recipeCookNowOn;
   const q = document.getElementById('recipe-search').value.trim().toLowerCase();
   const catFilter = document.getElementById('recipe-filter-category').value;
   const cuiFilter = document.getElementById('recipe-filter-cuisine').value;
   const usage = stockUsageMap();
-  const list = recipes.filter(r =>
+  const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
+  let list = recipes.filter(r =>
     (!catFilter || r.tax.category === catFilter) &&
     (!cuiFilter || r.tax.cuisine === cuiFilter) &&
     (!q || r.name.toLowerCase().includes(q) || r.tax.tags.some(t => t.toLowerCase().includes(q))) &&
     (!recipeEfficientOn || efficiencyStars(r, usage).stars >= 4)
-  );
+  ).map(r => ({ r, readiness: computeReadiness(r, stockById) }));
+
+  // 🔥 Cook Now: only recipes where you have >=85% of the tracked ingredients
+  // in stock, most-ready first.
+  if (recipeCookNowOn) {
+    const ratio = x => x.readiness.ok / x.readiness.tracked;
+    list = list.filter(x => x.readiness.tracked > 0 && ratio(x) >= 0.85)
+               .sort((a, b) => ratio(b) - ratio(a) || (b.readiness.score - a.readiness.score));
+  }
+
   const container = document.getElementById('recipe-list');
   container.classList.add('card-grid');
-  if (!list.length) { container.innerHTML = '<div class="empty">No recipes match your filters.</div>'; return; }
-  const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
-  container.innerHTML = list.map(r => {
-    const ingHtml = (r.ingredients || []).map(ing => {
-      const s = ing.stock_item_id ? stockById[ing.stock_item_id] : null;
-      const badge = isAlwaysOnHand(ing.ingredient_name)
-        ? statusBadge('OK')
-        : (statusBadge(s ? s.status : null) || `<span class="small">not tracked</span>`);
-      return `<li>${escHtml(ing.ingredient_name)}${ing.quantity ? ' — ' + escHtml(ing.quantity) : ''} ${badge}</li>`;
+  if (!list.length) {
+    container.innerHTML = recipeCookNowOn
+      ? '<div class="empty">Nothing you can make right now. Mark more pantry items as in stock, or switch off 🔥 Cook Now.</div>'
+      : '<div class="empty">No recipes match your filters.</div>';
+    return;
+  }
+  container.innerHTML = list.map(({ r, readiness }) => {
+    const ingHtml = readiness.items.map(it => {
+      const badge = it.pending ? '<span class="badge badge-pending">🛒 on list</span>'
+        : (statusBadge(it.status) || '<span class="small">not tracked</span>');
+      const via = it.via ? ` <span class="small aka-note">↔ using ${escHtml(it.via)}</span>` : '';
+      return `<li>${escHtml(it.name)}${it.quantity ? ' — ' + escHtml(it.quantity) : ''}${via} ${badge}</li>`;
     }).join('');
-    const readiness = computeReadiness(r, stockById);
     const faceBadge = readiness.tracked === 0
       ? '<span class="small">untracked</span>'
       : (readiness.ok === readiness.tracked
         ? `<span class="badge badge-OK">${readiness.ok}/${readiness.tracked}</span>`
         : `<span class="badge badge-LOW">${readiness.ok}/${readiness.tracked}</span>`);
+    const addable = readiness.items.filter(it => (it.status === 'OUT' || it.status === 'LOW') && !it.pending).length;
     const detailsId = `recipes-card-details-${r.id}`;
     const special = recipeSpecialCount(r, usage);
     return `
@@ -1217,6 +1221,7 @@ function renderRecipes() {
           <div class="rate-row">Efficiency: ${effStarsHtml(r, usage)}</div>
           ${r.instructions ? `<div class="card-meta">${escHtml(r.instructions)}</div>` : ''}
           ${ingHtml ? `<ul class="ing-list">${ingHtml}</ul>` : '<p class="small">No ingredients listed.</p>'}
+          ${addable > 0 ? `<button class="ghost add-grocery" data-action="add-grocery" data-id="${escAttr(r.id)}">+ Add ${addable} to cart</button>` : ''}
           ${r.tax.tags.length ? `<div class="card-tags">${r.tax.tags.map(t => `<span class="tag-chip">${escHtml(t)}</span>`).join('')}</div>` : ''}
           ${special > 0
             ? `<div class="special-note">🛒 ${special} special-buy ingredient${special === 1 ? '' : 's'} (used in no other recipe)</div>`
@@ -1231,7 +1236,7 @@ function renderRecipes() {
     `;
   }).join('');
   wireCardGrid('recipe-list', 'recipes');
-  wireCardActions('recipe-list', { edit: id => editRecipe(id), delete: id => deleteRecipe(id) });
+  wireCardActions('recipe-list', { edit: id => editRecipe(id), delete: id => deleteRecipe(id), 'add-grocery': id => window.addMissingToGrocery(id) });
   applyCardState('recipe-list', 'recipes');
 }
 
@@ -1241,6 +1246,12 @@ document.getElementById('recipe-filter-category').addEventListener('input', rend
 document.getElementById('recipe-filter-cuisine').addEventListener('input', renderRecipes);
 document.getElementById('btn-add-recipe').addEventListener('click', () => openRecipeModal());
 document.getElementById('recipe-collapse-all').addEventListener('click', () => collapseAll('recipe-list', 'recipes'));
+let recipeCookNowOn = false;
+document.getElementById('recipe-cooknow').addEventListener('click', () => {
+  recipeCookNowOn = !recipeCookNowOn;
+  document.getElementById('recipe-cooknow').classList.toggle('active', recipeCookNowOn);
+  renderRecipes();
+});
 let recipeEfficientOn = false;
 document.getElementById('recipe-efficient').addEventListener('click', () => {
   recipeEfficientOn = !recipeEfficientOn;
@@ -1567,7 +1578,7 @@ async function addWeekMissingToGrocery() {
     if (error) throw error;
     await refreshGroceryNames();
     renderPlan();
-    if (recipes.length) renderSuggestions();
+    if (recipes.length) renderRecipes();
     setStatus('plan-status', `Added ${rows.length} item${rows.length === 1 ? '' : 's'} to this week's grocery list.`);
   } catch (e) { setStatus('plan-status', 'Add failed: ' + e.message, true); }
 }
@@ -1608,7 +1619,7 @@ async function gotoWeek(delta) {
   currentWeekStart = delta === 0 ? mondayOf(new Date()) : addDays(currentWeekStart, delta);
   await loadPlan();
   await refreshGroceryNames();
-  renderSuggestions();
+  renderRecipes();
 }
 document.getElementById('week-prev').addEventListener('click', () => gotoWeek(-7));
 document.getElementById('week-next').addEventListener('click', () => gotoWeek(7));
@@ -1653,7 +1664,7 @@ async function reconcileReceipt() {
       if (cartRow) { await sb.from('grocery_extra_items').delete().eq('id', cartRow.id); cleared++; }
     } catch (e) { unmatched.push(line + ' (error)'); }
   }
-  await loadStock(); await renderGrocery(); if (recipes.length) renderSuggestions();
+  await loadStock(); await renderGrocery(); if (recipes.length) renderRecipes();
   document.getElementById('recon-box').style.display = 'none';
   document.getElementById('recon-text').value = '';
   setStatus('grocery-status', `Reconciled: ${marked} marked in stock, ${cleared} cleared from cart` +
@@ -1682,12 +1693,12 @@ async function reconcileStockReceipt() {
         await sb.from('stock_items').update({ status: 'OK', updated_at: new Date().toISOString() }).eq('id', item.id);
         marked++;
       } else {
-        await sb.from('stock_items').insert({ name: target, category: 'household_other', status: 'OK' });
+        await sb.from('stock_items').insert({ name: target, category: 'other', status: 'OK' });
         added++; addedNames.push(target);
       }
     } catch (e) { errs++; }
   }
-  await loadStock(); await refreshGroceryNames(); if (recipes.length) renderSuggestions();
+  await loadStock(); await refreshGroceryNames(); if (recipes.length) renderRecipes();
   document.getElementById('stock-recon-box').style.display = 'none';
   document.getElementById('stock-recon-text').value = '';
   setStatus('stock-status', `Reconciled: ${marked} marked in stock` +
@@ -1735,7 +1746,7 @@ function updateCartBadge() {
 document.getElementById('cart-jump').addEventListener('click', () =>
   document.querySelector('.tab-btn[data-tab="grocery"]').click());
 function rerenderPending() {
-  if (recipes.length) renderSuggestions();
+  if (recipes.length) renderRecipes();
   if (planRows !== undefined && document.getElementById('panel-plan').classList.contains('active')) renderPlan();
 }
 
@@ -1794,7 +1805,7 @@ function parseGNote(notes) {
 function gNote(status, text) { return `[${status}]${text ? ' ' + text : ''}`; }
 function aisleOf(name) {
   const s = stockItems.find(x => (x.name || '').toLowerCase() === (name || '').toLowerCase());
-  return s ? s.category : 'household_other';
+  return s ? s.category : 'other';
 }
 // This week's planned-meal needs (stock names) not already on the list.
 function mealPlanNeedsNotOnList() {
@@ -1884,7 +1895,7 @@ async function addPlannedToCart(horizon) {
   } catch (e) { setStatus('grocery-status', 'Add failed: ' + e.message, true); return; }
 
   await renderGrocery();
-  if (recipes.length) renderSuggestions();
+  if (recipes.length) renderRecipes();
 
   const warn = document.getElementById('grocery-warning');
   if (held.length) {
@@ -2021,11 +2032,7 @@ window.copyOrderPrompt = () => {
 window.addWeekNeeds = async () => { await addWeekMissingToGrocery(); await renderGrocery(); };
 
 // ================= COOK NOW (stock-based suggestions) =================
-document.getElementById('sugg-ready-only').addEventListener('change', renderSuggestions);
-document.getElementById('sugg-search').addEventListener('input', renderSuggestions);
-document.getElementById('sugg-filter-category').addEventListener('input', renderSuggestions);
-document.getElementById('sugg-filter-cuisine').addEventListener('input', renderSuggestions);
-document.getElementById('sugg-collapse-all').addEventListener('click', () => collapseAll('suggestions-list', 'suggestions'));
+// (Cook Now controls moved into the Recipes toolbar — 🔥 Cook Now toggle.)
 
 // Ingredients treated as always available (never missing, never on grocery).
 const ALWAYS_ON_HAND = new Set(['water', 'ice', 'cold water', 'warm water', 'hot water',
@@ -2090,79 +2097,7 @@ function computeReadiness(recipe, stockById) {
   return { ok, tracked, total: ings.length, missing, items, score };
 }
 
-function renderSuggestions() {
-  const container = document.getElementById('suggestions-list');
-  const readyOnly = document.getElementById('sugg-ready-only').checked;
-  const q = document.getElementById('sugg-search').value.toLowerCase();
-  const catF = document.getElementById('sugg-filter-category').value;
-  const cuiF = document.getElementById('sugg-filter-cuisine').value;
-  if (!recipes.length) { container.innerHTML = '<div class="empty">No recipes yet.</div>'; return; }
-  const stockById = Object.fromEntries(stockItems.map(s => [s.id, s]));
-  let rows = recipes.filter(r =>
-    (!q || r.name.toLowerCase().includes(q) || (r.tax.tags || []).some(t => t.toLowerCase().includes(q))) &&
-    (!catF || r.tax.category === catF) &&
-    (!cuiF || r.tax.cuisine === cuiF)
-  ).map(r => ({ recipe: r, readiness: computeReadiness(r, stockById) }));
-
-  if (readyOnly) {
-    rows = rows.filter(row => row.readiness.tracked > 0 && row.readiness.ok === row.readiness.tracked);
-  }
-
-  rows.sort((a, b) => {
-    const sa = a.readiness.score, sb = b.readiness.score;
-    if (sa === null && sb === null) return 0;
-    if (sa === null) return 1;
-    if (sb === null) return -1;
-    return sb - sa;
-  });
-
-  if (!rows.length) {
-    container.innerHTML = '<div class="empty">Nothing fully stocked right now — try unchecking the filter to see closest matches.</div>';
-    return;
-  }
-
-  container.classList.add('card-grid');
-  container.innerHTML = rows.map(({ recipe: r, readiness }) => {
-    const pct = readiness.score === null ? 0 : Math.round(readiness.score * 100);
-    // addable = OUT/LOW and NOT already on the grocery list; pending = on the list.
-    const addable = readiness.items.filter(it => (it.status === 'OUT' || it.status === 'LOW') && !it.pending).length;
-    const pendingCount = readiness.items.filter(it => it.pending).length;
-    const allSet = addable === 0 && pendingCount === 0;
-    const summary = allSet ? 'You have everything in the pantry'
-      : addable === 0 ? 'Everything you need is on your grocery list'
-      : `${addable} item${addable === 1 ? '' : 's'} to buy`;
-    const itemsHtml = readiness.items.map(it => {
-      const badge = it.pending ? '<span class="badge badge-pending">🛒 on list</span>'
-        : (statusBadge(it.status) || '<span class="small">not tracked</span>');
-      const qty = it.quantity ? ` <span class="small">${escHtml(it.quantity)}</span>` : '';
-      const via = it.via ? ` <span class="small aka-note">↔ using ${escHtml(it.via)}</span>` : '';
-      return `<li><span class="grow">${escHtml(it.name)}${qty}${via}</span> ${badge}</li>`;
-    }).join('');
-    const detailsId = `suggestions-card-details-${r.id}`;
-    return `
-      <div class="card collapsible" data-card-id="${escAttr(r.id)}">
-        <button type="button" class="card-face" aria-expanded="false" aria-controls="${escAttr(detailsId)}">
-          <span class="card-title">${escHtml(r.name)}</span>
-          ${r.tax.category ? `<span class="cat-tag">${escHtml(r.tax.category)}</span>` : ''}
-          ${r.tax.cuisine ? `<span class="cuisine-tag">${escHtml(r.tax.cuisine)}</span>` : ''}
-          <span class="readiness-bar"><span class="readiness-fill" style="width:${pct}%"></span></span>
-          <span class="readiness-label ${allSet ? 'all-in' : ''}">${escHtml(summary)}</span>
-          <span class="chev" aria-hidden="true"></span>
-        </button>
-        <div class="card-details" id="${escAttr(detailsId)}">
-          <ul class="missing-list">${itemsHtml}</ul>
-          ${addable > 0
-            ? `<button class="ghost add-grocery" data-action="add-grocery" data-id="${escAttr(r.id)}">+ Add ${addable} to cart</button>`
-            : (pendingCount > 0 ? '<p class="small">Everything you need is on your grocery list.</p>'
-                                : '<p class="small all-in">Ready to cook — you have everything.</p>')}
-        </div>
-      </div>
-    `;
-  }).join('');
-  wireCardGrid('suggestions-list', 'suggestions');
-  wireCardActions('suggestions-list', { 'add-grocery': id => window.addMissingToGrocery(id) });
-  applyCardState('suggestions-list', 'suggestions');
-}
+// (renderSuggestions removed — "Cook Now" is now the 🔥 toggle inside renderRecipes.)
 
 // One-click: add a recipe's not-in-stock ingredients to this week's grocery list.
 window.addMissingToGrocery = async (recipeId) => {
@@ -2181,9 +2116,9 @@ window.addMissingToGrocery = async (recipeId) => {
     if (error) throw error;
     await refreshGroceryNames();
     rerenderPending();
-    setStatus('suggestions-status',
+    setStatus('recipe-status',
       `Added ${rows.length} item${rows.length === 1 ? '' : 's'} to this week's grocery list.`, false);
-  } catch (e) { setStatus('suggestions-status', 'Add failed: ' + e.message, true); }
+  } catch (e) { setStatus('recipe-status', 'Add failed: ' + e.message, true); }
 };
 
 // ================= modal helpers =================
@@ -2218,7 +2153,7 @@ async function init() {
   await loadRecipes();
   await loadPlan();
   await refreshGroceryNames();
-  renderSuggestions();
+  renderRecipes();
   restoreLastTab();
   maybeShowOnboarding();
 }

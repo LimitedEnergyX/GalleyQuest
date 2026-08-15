@@ -8,7 +8,7 @@
 
 Track what's in your pantry, see every meal you can make from it, plan the week, and turn that plan into a smart, waste-aware grocery cart. It's a dependency-free static frontend backed by Supabase (Postgres) — no build step, no framework — with a pair of Claude workflows that capture your pantry by voice and fill your grocery cart for you.
 
-![GalleyQuest — Cook Now](docs/screenshots/cook-now.png)
+![GalleyQuest — Recipes with Cook Now](docs/screenshots/cook-now.png)
 
 ---
 
@@ -30,7 +30,7 @@ Track what's in your pantry, see every meal you can make from it, plan the week,
 
 Most pantry apps are glorified lists. GalleyQuest is built around a different idea: your inventory should _do something for you_. Every screen is organized around a decision you actually make —
 
-- **"What can I cook tonight?"** → **Cook Now** ranks recipes by how ready they are from current stock.
+- **"What can I cook tonight?"** → **Recipes → 🔥 Cook Now** filters to just the meals you can make now (≥85% of ingredients on hand).
 - **"What do I have?"** → **Stock** is your pantry, grouped by supermarket aisle, with usage and expiration insight.
 - **"What's the plan?"** → **Meal Plan** is a weekly grid that knows what each meal still needs.
 - **"What do I buy?"** → **Grocery Cart** is a real shopping list with a lifecycle, built from your plan — and shoppable by Claude.
@@ -47,7 +47,7 @@ GalleyQuest began as a **small self-hosted pantry/recipe/meal-plan tracker** (fo
 
 | Area | What was added |
 |------|----------------|
-| **Scale & data quality** | Grew ~28 → **234 recipes** and **~505 stock items**; added a clean cuisine/category taxonomy (11 cuisine families, meal-time categories), consolidated 76 duplicate/variant ingredients, and normalized recipe names. |
+| **Scale & data quality** | Grew ~28 → **262 recipes** and a **~497-item, food-only pantry** (aisle-categorized, no household clutter); a clean taxonomy (11 cuisine families, meal-time categories); consolidated duplicate/variant ingredients; and a recipe collection curated with an **anti-inflammatory, gut-friendly lean**. |
 | **Intelligence** | Computed **efficiency ratings**, **AKA / interchangeable ingredients**, single-use ingredient flags, a staples view, and coverage analysis — readiness now understands substitutes and won't double-buy. |
 | **Smart grocery** | **Multi-week** cart building from the meal plan (this week → all planned), a **perishable expiration hold** so you don't buy milk three weeks early, an aisle-grouped list, and an on-list → ordered → picked-up lifecycle that **restocks the pantry** when you're done. |
 | **UX overhaul** | Consistent 3-row recipe cards, 1–5⭐ ratings, sticky toolbars + table headers, inline expiration date pickers, general-quantity suggestions, one-click add-to-cart, and desktop scaling that reads well at 100% zoom. |
@@ -58,13 +58,13 @@ GalleyQuest began as a **small self-hosted pantry/recipe/meal-plan tracker** (fo
 
 ## Feature tour
 
-### 🔥 Cook Now
-See every recipe you can make from current stock, ranked by readiness. Each card has a readiness bar, a plain-English summary (*"You have everything"* / *"3 items to buy"*), category + cuisine chips, and — when expanded — the full ingredient list with per-item OK/OUT status. Filter by category or cuisine, or flip **Show Fully Stocked** to see only zero-shopping meals. One click sends anything missing to the cart.
+### 📖 Recipes — with 🔥 Cook Now
+262 recipes in a consistent, scannable card layout. Every card shows the same three rows — **name + on-hand ratio**, **category · cuisine**, and **ratings** — plus, when expanded, the full ingredient list with per-item OK/OUT status and one-click **add-missing-to-cart**. Rate what you've tried (1–5⭐) and read each recipe's computed 🌿 **efficiency** rating. Filter by category, cuisine, or search — flip **🌿 Efficient** for lean, pantry-friendly meals, or **🔥 Cook Now** to show only what you can make right now (**≥85% of tracked ingredients on hand**, most-ready first).
 
-![Cook Now — expanded ingredient list](docs/screenshots/cook-now-detail.png)
+![Recipes — with the Cook Now filter](docs/screenshots/cook-now-detail.png)
 
 ### 🥫 Stock
-Your pantry, grouped into the 12 aisles of a real supermarket. Each aisle header shows an at-a-glance roll-up (`7/74 in stock · 1 low`) and an ⏰ expiring flag.
+Your pantry, grouped into real supermarket aisles. Each aisle header shows an at-a-glance roll-up (`7/74 in stock · 1 low`) and an ⏰ expiring flag.
 
 ![Stock — aisle overview](docs/screenshots/stock-overview.png)
 
@@ -76,11 +76,6 @@ Expand an aisle and every item gives you:
 - **＋** — add straight to the grocery cart
 
 ![Stock — expanded aisle with Uses, quantities, and add-to-cart](docs/screenshots/stock.png)
-
-### 📖 Recipes
-200+ recipes in a consistent, scannable card layout. Every card shows the same three rows — **name + on-hand ratio**, **category · cuisine**, and **ratings**. Rate what you've tried (1–5⭐), and read each recipe's computed **efficiency** rating: a 🌿 score based on how many ingredients it needs and how many are rarely used elsewhere. Filter by category, cuisine, search, or **🌿 Efficient** to favor lean, pantry-friendly meals.
-
-![Recipes](docs/screenshots/recipes.png)
 
 ### 📅 Meal Plan
 A weekly grid — pick a theme and a recipe per day. Themes **cross-reference** cuisines (choose *Mexican* and the recipe list narrows to Tex-Mex / Southwest), each day shows live readiness (*"✓ ready"* / *"3 to buy"*), and one button pulls the week's missing ingredients into the cart.
@@ -176,7 +171,7 @@ Ideas on deck (not yet built):
 - **Smarter general quantities** — refine the produce/bulk unit heuristics over time.
 - **Recurring meal schedules** — "every first week of the month" style repeats (copy-a-week already ships).
 
-_Recently shipped: first-run wizard, multiple meals per day (meal slots), receipt reconciliation (grocery **and** stock), copy-a-week, and a full brand refresh + mobile overhaul._
+_Recently shipped: a merged **Recipes → 🔥 Cook Now** filter (≥85% ready), a **food-only pantry** cleanup, anti-inflammatory recipe curation, first-run wizard, multiple meals per day (meal slots), receipt reconciliation (grocery **and** stock), copy-a-week, and a full brand refresh + mobile overhaul._
 
 ---
 
