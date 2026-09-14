@@ -4,6 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+> **Superseded (September 2026).** GalleyQuest now ships as part of [Atlas Home Command Center](https://github.com/LimitedEnergyX/atlas-home-command) under `galleyquest/`, where it supports multiple grocery stores, multiple AI agents (ChatGPT or Claude with browser control), a local SQLite preview service, and a shared AI charter with Atlas. This repository is kept for reference and is no longer updated.
+
 **A household pantry, recipe, and meal-planning app that answers the real daily question — _"what can I actually cook right now, and what do I need to buy?"_ — and then lets Claude do the shopping.**
 
 Track what's in your pantry, see every meal you can make from it, plan the week, and turn that plan into a smart, waste-aware grocery cart. It's a dependency-free static frontend backed by Supabase (Postgres) — no build step, no framework — with a pair of Claude workflows that capture your pantry by voice and fill your grocery cart for you.
